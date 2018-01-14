@@ -169,16 +169,19 @@
 				slide: 		sliderupdatecallback,
 				// sets a field to show "PENDING" status
 				start: 		function( event, ui ) {
-		  						$( "#pending_indication" ).val("PENDING");
+		  						$( "#pending_indication" ).val("---> PENDING ...");
 							},
 				// sets a field to show "DONE" status
 				stop: 		function( event, ui ) {
 								// create a timeout-timer to delay the "commit" of the given slider value
-								var timeout_timer = setInterval( function() { 
-								$( "#pending_indication" ).val("DONE");
-								// delete timer after first execution
-								clearInterval(timeout_timer);
-								}, 2000);
+								var timeout_timer = setInterval(function() { 
+																	var eventSource = event.target.id;
+																	$( "#pending_indication" ).val("DONE");
+																	console.log("Committing update on Timer '" + eventSource + "'");
+																	// delete timer after first execution
+																	clearInterval(timeout_timer);
+																}, 
+																2000);
 							},
 			});
 			// INPUT STUFF
