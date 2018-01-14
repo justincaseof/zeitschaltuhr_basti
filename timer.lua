@@ -7,7 +7,8 @@ print("Timer")
 print("Setting Up GPIO...")
 
 -- Note: Pin index starts at 0 (for D0 or equivalent pin function)
-setupwifi_pin           = 1     --> = D1 ... NOTE: should already have been defined in 'init.lua'
+setupwifi_pin           = 1     --> = D1 --> the "FLASH" button on NodeMCU dev kit board
+                                    -- NOTE: should already have been defined in 'init.lua'
 button_and_red_led_pin  = 0     --> = D0 
                                     -- = the "USER" button on NodeMCU dev kit board. ... NOTE: should already have been used as input in 'init.lua' 
                                     -- = the red LED on NodeMCU dev kit board. ... NOTE: should already have been defined in 'init.lua' 
@@ -61,6 +62,38 @@ if file.open("timerconfigs.txt", "rw") then
 end
 timerconfigs = {}
 
+----------
+-- SNTP --
+----------
+sntpTimeSyncRunning = false
+sntpTimeSyncDone    = false
+function syncSNTP()
+    sntpServers = {
+        "0.pool.ntp.org",
+        "1.pool.ntp.org",
+        "2.pool.ntp.org",
+        "3.pool.ntp.org",
+        "ptbtime1.ptb.de",
+        "ptbtime2.ptb.de",
+        "ptbtime3.ptb.de",
+    }
+    if ( not sntpTimeSyncRunning and not sntpTimeSyncDone ) then
+        sntpTimeSyncRunning = true
+        sntp.sync(
+            sntpServers, 
+            function(sec, usec, server, info)
+                print('SNTP sync done: ', sec, usec, server)
+                sntpTimeSyncRunning = false
+                sntpTimeSyncDone = true
+            end,
+            function()
+                print('SNTP sync failed!')
+                sntpTimeSyncRunning = false
+                sntpTimeSyncDone = false
+            end
+        )
+    end
+end
 
 ----------
 -- mDNS --
@@ -88,12 +121,19 @@ seconds_until_switchoff_counter = 1800
 local timer1_id = 0
 local timer1_timeout_millis = 1000
 tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
+    -- SNTP TIME --
+    -- EXAMPLE: unix_time_millis, microseconds, rate = rtctime.get()
+    tm = rtctime.epoch2cal(rtctime.get())
+    print(string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"]))
+    unix_time_millis = string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
+    syncSNTP()  -- ask for sync
+
     -- LOG --
-    
     print("tick")
     print("  -> relais_state: " .. (relais_state or "?"))
     print("  -> seconds_until_switchoff_counter: " .. (seconds_until_switchoff_counter or "?"))
     print("  -> IP: " .. (wifi.sta.getip() or "?"))
+    print("  -> time: " .. unix_time_millis)
     
     -- railais_state --
     if tonumber(relais_state) == 2 then
