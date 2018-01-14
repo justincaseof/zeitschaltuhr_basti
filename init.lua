@@ -1,7 +1,7 @@
 print("Starting Bootloader...")
 button_pin = 0
-setupwifi_pin = 2
-luafilename = "define_me.lua"
+setupwifi_pin = 0
+luafilename = "__dummy_lua_filename__"
 gpio.mode(button_pin, gpio.INPUT)
 gpio.mode(setupwifi_pin, gpio.INPUT, gpio.PULLUP)
 
