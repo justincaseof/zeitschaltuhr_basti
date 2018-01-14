@@ -2,8 +2,9 @@
 <html lang="us">
 <head>
 	<meta charset="utf-8">
-	<title>RANGE SLIDER</title>
-	<link href="jquery-ui.min.css" rel="stylesheet">	<!-- FIXME: use minified version! -->
+	<title>RANGE SLAAAAIDER</title>
+	<!--<link href="jquery-ui.min.css" rel="stylesheet">-->
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
 	<style>
 	body{
 		font-family: "Trebuchet MS", sans-serif;
@@ -64,12 +65,11 @@
 
 <!--
 	NOTE:
-	  * NodeMCU does not support folders. thus, i copied everything plain to flash
-<script src="./jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
-	<script src="./jquery-ui-1.12.1.custom/jquery-ui.js"></script>
+	Its not a good idea to let NodeMCU deliver jQuery files as they are quite big! 
+	Moreover, NodeMCU messes up the sockets and sends arroneous chucks.
 -->
-<script src="jquery.js"></script>						<!-- FIXME: use minified version! -->
-	<script src="jquery-ui.min.js"></script>				<!-- FIXME: use minified version! -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 	<script>
 		// === CONSTANTS ===
 		var SLIDER_UPDATE_COMMIT_TIMEOUT 	= 1000;

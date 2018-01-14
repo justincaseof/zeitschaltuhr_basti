@@ -262,6 +262,8 @@ local function Sendfile(sck, filename, sentCallback)
     if not file.open(filename, "r") then
         print(" cannot open file '" .. filename .. "'")
         sck:close()
+        SEMAPHORE_TAKEN = false
+        print("RESET SEMAPHORE_TAKEN")
         return
     end
     local function sendChunk()
@@ -273,6 +275,8 @@ local function Sendfile(sck, filename, sentCallback)
             collectgarbage()
             if sentCallback then
                 sentCallback()
+                SEMAPHORE_TAKEN = false
+                print("RESET SEMAPHORE_TAKEN")
             else
                 sck:close()
             end
@@ -306,10 +310,19 @@ end
     POST    http://ip:port/timer/{timer_id} --> create/update timer
     DELETE  http://ip:port/timer/{timer_id} --> delete timer
 ]]--
+SEMAPHORE_TAKEN = false
 -- == START ACTUAL WEB SERVER ==
 local srv = net.createServer(net.TCP)
 srv:listen(80, function(conn)
     conn:on("receive", function(sck, request_payload)
+        if (SEMAPHORE_TAKEN) then
+            sck:close()
+            return
+        end
+
+        SEMAPHORE_TAKEN = true
+
+
         -- == DATA == --
         local payload = ""
         if request_payload == nil or request_payload == "" then
@@ -334,6 +347,7 @@ srv:listen(80, function(conn)
             local contentType = getContentType(path)
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n" ..
+                "Connection: close" .. 
                 "Content-Type: " .. contentType .. "; charset=UTF-8\r\n\r\n", 
                 function()
                     Sendfile(sck, path, 
