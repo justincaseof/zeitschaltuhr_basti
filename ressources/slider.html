@@ -51,36 +51,39 @@
 <body>
 
 <!-- Slider -->
-<h2 class="demoHeaders">Slider</h2>
-<div id="slider"></div>
+<h2 class="demoHeaders">Sliders</h2>
+<div class="sliderdefinitions"></div>
+
 <div>
 	<p>&nbsp;</p>
-	<input id="from" title="from" value=""> 
-	<input id="to" title="to" value=""> 
-	<p>&nbsp;</p>
-	<input id="from_time" title="from_time" value="">
-	<input id="to_time" title="to_time" value="">
-	<p>&nbsp;</p>
+	<h2 class="demoHeaders">Test</h2>
 	<input id="pending_indication" title="pending_indication" value="DONE">
+	<input type="submit" name="seconds_until_switchoff_counter" value="10" onclick="">
+	<button id="mybutton">TEST2</button>
 </div>
 
 <script src="./jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
 	<script src="./jquery-ui-1.12.1.custom/jquery-ui.js"></script>
 	<script>
-		// constants as default
-		var time_minutes_min = 0;
-		var time_minutes_max = 1440;
-		var _from = 360;
-		var _to = 480;
-		$( "#slider" ).slider({
-			range: true,
-			step: 15,
-			min: time_minutes_min,
-			max: time_minutes_max,
-			values: [ _from, _to ]
-		});
-		
-		var updateTime = function( fromArg, toArg ) {	// 0..1440 minutes
+		// === CONSTANTS ===
+		var TIME_MINUTES_MIN = 		0;
+		var TIME_MINUTES_MAX = 		1440;
+		var PREFIX_DYNAMICINPUTS = 	"_";
+		var POSTFIX_FROM = 			"_from";
+		var POSTFIX_TO = 			"_to";
+		var POSTFIX_FROM_DAYTIME = 	"_from_daytime";
+		var POSTFIX_TO_DAYTIME = 	"_to_daytime";
+
+		// === FUNCTIONS ===
+		var sliderupdatecallback = function( event, ui ) {
+			var _id = 		event.target.id;
+			var _from = 	ui.values[0];
+			var _to = 		ui.values[1];
+			console.log("Timer '" + _id + "' update: " + "from: " + _from + " to: " + _to);
+			updateTime(_id, _from, _to);
+		}
+
+		var updateTime = function( timerId, fromArg, toArg ) {	// 0..1440 minutes
 			var from = parseInt(fromArg);
 			var to = parseInt(toArg);
 
@@ -89,26 +92,26 @@
 				from = to;
 			}
 			// validation 2
-			if (from > time_minutes_max) {
-				from = time_minutes_max;
+			if (from > TIME_MINUTES_MAX) {
+				from = TIME_MINUTES_MAX;
 			}
-			if (from < time_minutes_min) {
-				from = time_minutes_min;
+			if (from < TIME_MINUTES_MIN) {
+				from = TIME_MINUTES_MIN;
 			}
 			// validation 3
-			if (to > time_minutes_max) {
-				to = time_minutes_max;
+			if (to > TIME_MINUTES_MAX) {
+				to = TIME_MINUTES_MAX;
 			}
-			if (to < time_minutes_min) {
-				to = time_minutes_min;
+			if (to < TIME_MINUTES_MIN) {
+				to = TIME_MINUTES_MIN;
 			}
 
-			var from_hours = Math.floor(from / 60);
-			var from_minutes = from % 60;
-			var to_hours = Math.floor(to / 60);
-			var to_minutes = to % 60;
+			var from_hours = 	Math.floor(from / 60);
+			var from_minutes = 	from % 60;
+			var to_hours = 		Math.floor(to / 60);
+			var to_minutes = 	to % 60;
 			
-			// leading zeros
+			// leading zeros // FIXME: string.format ?
 			if (from_hours < 10) {
 				from_hours = "0" + from_hours;
 			}
@@ -129,14 +132,75 @@
 			console.log("from_hours: " + from_hours + ", from_minutes: " + from_minutes);
 			console.log("to_hours: " + to_hours + ", to_minutes: " + to_minutes);
 
-			$( "#from" ).val(from);
-			$( "#to" ).val(to);
-			$( "#to_time" ).val( to_hours + ":" + to_minutes );
-			$( "#from_time" ).val( from_hours + ":" + from_minutes );
+			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM ).val( from );
+			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO ).val( to );
+			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM_DAYTIME ).val( to_hours + ":" + to_minutes );
+			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO_DAYTIME ).val( from_hours + ":" + from_minutes );
 		}
-
-		// init
-		updateTime(_from, _to);
+		
+		// === TIMER DEFINITIONS ===
+		var timerdefinitions = {};
+		timerdefinitions["tim0"] = { from: 360, to: 480 };
+		timerdefinitions["tim1"] = { from: 540, to: 920 };
+		// dynamically create timer sliders
+		Object.keys(timerdefinitions).forEach(function (key) { 
+    		var value = timerdefinitions[key];
+    		console.log("adding timer: '" + key + "': %o", value);
+    		// --- create and add timer SLIDER ---
+			// CONTAINER DIV
+			var containerDiv = document.createElement("div");
+			var _title = document.createElement("p");
+			_title.append("Timer: '" + key + "'");
+			containerDiv.append( _title );
+			// CREATE SLIDER DIV
+			var newTimerSliderDiv = document.createElement("div");
+			newTimerSliderDiv.id = key;
+			containerDiv.append(newTimerSliderDiv);
+			$( ".sliderdefinitions" ).append( containerDiv );
+			$( "#" + key ).slider({
+				// === DATA ===
+				range: 		true,
+				step: 		15,
+				min: 		TIME_MINUTES_MIN,
+				max: 		TIME_MINUTES_MAX,
+				values: 	[ value.from, value.to ],
+				// === EVENTS ===
+				// updates input fields according to slider position
+				slide: 		sliderupdatecallback,
+				// sets a field to show "PENDING" status
+				start: 		function( event, ui ) {
+		  						$( "#pending_indication" ).val("PENDING");
+							},
+				// sets a field to show "DONE" status
+				stop: 		function( event, ui ) {
+								// create a timeout-timer to delay the "commit" of the given slider value
+								var timeout_timer = setInterval( function() { 
+								$( "#pending_indication" ).val("DONE");
+								// delete timer after first execution
+								clearInterval(timeout_timer);
+								}, 2000);
+							},
+			});
+			// INPUT STUFF
+			var _from_Input = 			document.createElement( "input" );
+			_from_Input.id = 			"_" + key + POSTFIX_FROM;
+			var _to_Input = 			document.createElement( "input" );
+			_to_Input.id = 				"_" + key + POSTFIX_TO;
+			var _from_daytime_Input = 	document.createElement( "input" );
+			_from_daytime_Input.id = 	"_" + key + POSTFIX_FROM_DAYTIME;
+			var _to_daytime_Input = 	document.createElement( "input" );
+			_to_daytime_Input.id = 		"_" + key + POSTFIX_TO_DAYTIME;
+			containerDiv.append(		_from_Input, 
+										_to_Input, 
+										document.createElement("br"),	// FIXME: CSS!!!
+										_from_daytime_Input, 
+										_to_daytime_Input,
+										document.createElement("p")		// FIXME: CSS!!!
+										);
+			// init
+			updateTime(key, value.from, value.to);
+		});
+		
 
 		// === JSON example ===
 		var jqxhr = $.getJSON( "example.json", function() {
@@ -153,29 +217,38 @@
 		  	});
 	  	// === /JSON example ===
 
-	  	// === SLIDER stuff ===
-		var sliderupdatecallback = function( event, ui ) {
-			console.log("hit! " + "from: " + ui.values[0] + " to: " + ui.values[1]);
-			updateTime(ui.values[0], ui.values[1]);
-		}
-		// define callback "slide" (mousemove)
-		$( "#slider" ).slider({
-		  start: 	function( event, ui ) {
-		  	$( "#pending_indication" ).val("PENDING");
-		  },
-		  stop: 	function( event, ui ) {
-		  	// === create a timeout-timer to delay the "commit" of the given slider value ===
-		  	var timeout_timer = setInterval( function() { 
-		  		$( "#pending_indication" ).val("DONE");
-		  		// delete
-		  		clearInterval(timeout_timer);
-		  	}, 2000);
-		  },
-		  slide: 	sliderupdatecallback,
+	  	// === POST /timer/{id} --- create timer ===
+		var jqxhr = $.getJSON( "example.json", function() {
+		  console.log( "success" );
+		} )
+			.done(function() {
+		    	console.log( "second success" );
+		  	})
+			.fail(function(e) {
+		    	console.log( "error: " + e.status );
+		  	})
+		  	.always(function() {
+		    	console.log( "complete" );
+		  	});
+	  	// === /POST /timer/{id} --- create timer ===
+
+		// === BUTTON ===
+		$( "#mybutton" ).click(function( event ) {
+			console.log(" CLICK " );
+			var __from = 	$( "#from" ).val()
+			var __to = 		$( "#to" ).val();
+			
+			$.post( "timer/0", { from: __from, to: __to } )
+				.done(function( data ) {
+					console.log("  POST successful!");
+			  	})
+			  	.fail(function(e) {
+					console.log("  POST ***NOT*** successful! Error: " + e.status );
+			  	});
+
+			event.preventDefault();
 		});
-		// alternative way to register listener
-		//$( "#slider" ).on( "slide", sliderupdatecallback );
-		// === /SLIDER stuff ===
+		// === /BUTTON ===
 		
 	</script>
 
