@@ -66,13 +66,14 @@
 	<script src="./jquery-ui-1.12.1.custom/jquery-ui.js"></script>				<!-- FIXME: use minified version! -->
 	<script>
 		// === CONSTANTS ===
-		var TIME_MINUTES_MIN = 		0;
-		var TIME_MINUTES_MAX = 		1440;
-		var PREFIX_DYNAMICINPUTS = 	"_";
-		var POSTFIX_FROM = 			"_from";
-		var POSTFIX_TO = 			"_to";
-		var POSTFIX_FROM_DAYTIME = 	"_from_daytime";
-		var POSTFIX_TO_DAYTIME = 	"_to_daytime";
+		var SLIDER_UPDATE_COMMIT_TIMEOUT 	= 1000;
+		var TIME_MINUTES_MIN 				= 0;
+		var TIME_MINUTES_MAX 				= 1440;
+		var PREFIX_DYNAMICINPUTS 			= "_";
+		var POSTFIX_FROM 					= "_from";
+		var POSTFIX_TO 						= "_to";
+		var POSTFIX_FROM_DAYTIME 			= "_from_daytime";
+		var POSTFIX_TO_DAYTIME 				= "_to_daytime";
 
 		// === FUNCTIONS ===
 		// Slider adjustment finish event
@@ -207,7 +208,7 @@
 																		timerdefinitions[eventSource].updateCommitPending = false;
 																		clearInterval(timeout_timer);					// delete timer after first execution
 																	}, 
-																	2000);
+																	SLIDER_UPDATE_COMMIT_TIMEOUT);
 								} else {
 									console.log("  (notification already in progress)");
 								}
