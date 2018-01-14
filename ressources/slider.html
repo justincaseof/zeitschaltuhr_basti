@@ -75,6 +75,7 @@
 		var POSTFIX_TO_DAYTIME = 	"_to_daytime";
 
 		// === FUNCTIONS ===
+		// Slider adjustment finish event
 		var sliderupdatecallback = function( event, ui ) {
 			var _id = 		event.target.id;
 			var _from = 	ui.values[0];
@@ -82,7 +83,7 @@
 			console.log("Timer '" + _id + "' update: " + "from: " + _from + " to: " + _to);
 			updateTime(_id, _from, _to);
 		}
-
+		// Called by "sliderupdatecallback" upon finish of a slider movement. Method checks the values and writes HH:mm in according input fields.
 		var updateTime = function( timerId, fromArg, toArg ) {	// 0..1440 minutes
 			var from = parseInt(fromArg);
 			var to = parseInt(toArg);
@@ -137,6 +138,19 @@
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM_DAYTIME ).val( to_hours + ":" + to_minutes );
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO_DAYTIME ).val( from_hours + ":" + from_minutes );
 		}
+		// Create or update timer: HTTP POST /timer/{id}
+		function notifyUpdate(timerId, from, to) {
+			console.log( "Committing update on Timer '%s': from=%d, to=%d", timerId, from, to );
+			$.post( "timer/" + timerId, 
+				{ from: from, to: to } 
+				)
+				.done(function( data ) {
+					console.log("[notifyUpdate]  POST successful!");
+			  	})
+			  	.fail(function(e) {
+					console.log("[notifyUpdate]  POST ***NOT*** successful! Error: " + e.status );
+			  	});
+		}
 		
 		// === TIMER DEFINITIONS ===
 		var timerdefinitions = {};
@@ -175,12 +189,13 @@
 				stop: 		function( event, ui ) {
 								// create a timeout-timer to delay the "commit" of the given slider value
 								var timeout_timer = setInterval(function() { 
-																	var eventSource = event.target.id;	// == sliderId
-																	$( "#pending_indication" ).val("DONE");
+																	var eventSource = event.target.id;				// == sliderId == timerId
+																	$( "#pending_indication" ).val("DONE");			// FIXME: remove
 																	// ACTUAL NOTIFICATION VIA POST
-																	notifyUpdate(eventSource, timerdefinitions[eventSource].from, timerdefinitions[eventSource].to);
-																	// delete timer after first execution
-																	clearInterval(timeout_timer);
+																	notifyUpdate(eventSource, 						//  == sliderId
+																				timerdefinitions[eventSource].from, // get that from our hashmap
+																				timerdefinitions[eventSource].to);	// get that from our hashmap
+																	clearInterval(timeout_timer);					// delete timer after first execution
 																}, 
 																2000);
 							},
@@ -221,20 +236,7 @@
 		  	});
 	  	// === /JSON example ===
 
-	  	// === POST /timer/{id} --- create timer ===
-		function notifyUpdate(timerId, from, to) {
-			console.log( "Committing update on Timer '%s': from=%d, to=%d", timerId, from, to );
-			$.post( "timer/" + timerId, 
-				{ from: from, to: to } 
-				)
-				.done(function( data ) {
-					console.log("[notifyUpdate]  POST successful!");
-			  	})
-			  	.fail(function(e) {
-					console.log("[notifyUpdate]  POST ***NOT*** successful! Error: " + e.status );
-			  	});
-		}
-	  	// === /POST /timer/{id} --- create timer ===
+	  	
 
 		// === BUTTON ===
 		$( "#mybutton" ).click(function( event ) {
