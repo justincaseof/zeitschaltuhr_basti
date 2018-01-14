@@ -153,11 +153,11 @@
 		  	});
 	  	// === /JSON example ===
 
+	  	// === SLIDER stuff ===
 		var sliderupdatecallback = function( event, ui ) {
 			console.log("hit! " + "from: " + ui.values[0] + " to: " + ui.values[1]);
 			updateTime(ui.values[0], ui.values[1]);
-		} 
-
+		}
 		// define callback "slide" (mousemove)
 		$( "#slider" ).slider({
 		  start: 	function( event, ui ) {
@@ -172,10 +172,10 @@
 		  	}, 2000);
 		  },
 		  slide: 	sliderupdatecallback,
-		  //create: function( event, ui ) {}
 		});
-		// register listener
-		//$( "#slider" ).on( "slide", sliderupdatecallback);
+		// alternative way to register listener
+		//$( "#slider" ).on( "slide", sliderupdatecallback );
+		// === /SLIDER stuff ===
 		
 	</script>
 
