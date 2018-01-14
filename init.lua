@@ -1,6 +1,6 @@
 print("Starting Bootloader...")
-button_pin = 0
-setupwifi_pin = 0
+button_pin      = 0 -- = D0 --> the "USER" button on NodeMCU dev kit board
+setupwifi_pin   = 1 -- = D1
 luafilename = "__dummy_lua_filename__"
 gpio.mode(button_pin, gpio.INPUT)
 gpio.mode(setupwifi_pin, gpio.INPUT, gpio.PULLUP)

@@ -7,18 +7,29 @@ print("Timer")
 print("Setting Up GPIO...")
 
 -- Note: Pin index starts at 0 (for D0 or equivalent pin function)
-led_pin = 3
-relais_out_pin = 2
-gpio.mode(led_pin, gpio.OUTPUT)
-gpio.mode(relais_out_pin, gpio.OUTPUT)
+setupwifi_pin           = 1     --> = D1 ... NOTE: should already have been defined in 'init.lua'
+button_and_red_led_pin  = 0     --> = D0 
+                                    -- = the "USER" button on NodeMCU dev kit board. ... NOTE: should already have been used as input in 'init.lua' 
+                                    -- = the red LED on NodeMCU dev kit board. ... NOTE: should already have been defined in 'init.lua' 
+blue_led_pin            = 4     --> = D4
+relais_out_pin          = 2     --> = D2
+gpio.mode(button_and_red_led_pin,   gpio.OUTPUT)
+gpio.mode(blue_led_pin,             gpio.OUTPUT)
+gpio.mode(relais_out_pin,           gpio.OUTPUT)
 
 function switchOn()
-    gpio.write(relais_out_pin, gpio.HIGH)
+    gpio.write(button_and_red_led_pin,  gpio.LOW)
+    gpio.write(relais_out_pin,          gpio.HIGH)
 end
 
 function switchOff()
-    gpio.write(relais_out_pin, gpio.LOW)
+    gpio.write(button_and_red_led_pin,  gpio.HIGH)
+    gpio.write(relais_out_pin,          gpio.LOW)
 end
+
+-- initially (and permanently) switch on blue LED on ESP8266 board
+gpio.write(blue_led_pin, gpio.LOW)
+-- initially switch on the relais
 switchOn()
 
 -----------------------------
@@ -32,6 +43,23 @@ function isWifiSetupActive()
     end
     return false
 end
+
+------------------------
+-- timer config stuff --
+------------------------
+-- Line format: {identifier}:{from}:{to}
+print(" #################### ")
+if file.open("timerconfigs.txt", "rw") then
+    print(" FILE!")
+    myline = "0:1:2"
+    myline = file.readline()
+    while ( myline ~= nil and myline ~= "" ) do
+        print(" --> " .. myline)
+        myline = file.readline()
+    end
+    file.close()
+end
+timerconfigs = {}
 
 
 ----------
@@ -65,6 +93,7 @@ tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     print("tick")
     print("  -> relais_state: " .. (relais_state or "?"))
     print("  -> seconds_until_switchoff_counter: " .. (seconds_until_switchoff_counter or "?"))
+    print("  -> IP: " .. (wifi.sta.getip() or "?"))
     
     -- railais_state --
     if tonumber(relais_state) == 2 then
@@ -130,7 +159,10 @@ wifi.setmode(wifi.STATION)
 -- less energy consumption
 wifi.setphymode(wifi.PHYMODE_G)
 -- edit config
-wifi.sta.config(client_ssid, client_password) 
+local wifi_client_config = {}
+wifi_client_config["ssid"] = client_ssid
+wifi_client_config["pwd"] = client_password
+wifi.sta.config(wifi_client_config) 
 wifi.sta.connect()
 print(" connecting to: " .. client_ssid)
 

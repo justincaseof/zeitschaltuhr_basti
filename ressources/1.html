@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<html>
+    <body>
+        <form action="" method="POST">
+            <input type="hidden" name="relais_state" value="0" visible="false">
+            
+            <input type="submit" name="seconds_until_switchoff_counter" value="10" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="20" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="30" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="40" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="50" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="60" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="120" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="300" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="600" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="1200" onclick="relais_state.value=2">
+            <input type="submit" name="seconds_until_switchoff_counter" value="1800" onclick="relais_state.value=2">
+            <input type="submit" name="button_on" value="ON" onclick="relais_state.value=1">
+            <input type="submit" name="button_off" value="OFF" onclick="relais_state.value=0">
+        </form>
+        <br>
+        <a href="/">-r-e-l-o-a-d-</a>
+        <br>
+        <a href="/status">json-status</a>
+        <br>
+        <form action="status" method="POST" >
+            <p>
+                <input type="submit" name="lala" value="POST /status test">
+            </p>
+        </form>
+    </body>
+</html>
