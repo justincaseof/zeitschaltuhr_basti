@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<title>RANGE SLIDER</title>
-	<link href="./jquery-ui-1.12.1.custom/jquery-ui.css" rel="stylesheet">
+	<link href="./jquery-ui-1.12.1.custom/jquery-ui.css" rel="stylesheet">	<!-- FIXME: use minified version! -->
 	<style>
 	body{
 		font-family: "Trebuchet MS", sans-serif;
@@ -62,8 +62,8 @@
 	<button id="mybutton">TEST2</button>
 </div>
 
-<script src="./jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
-	<script src="./jquery-ui-1.12.1.custom/jquery-ui.js"></script>
+<script src="./jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>		<!-- FIXME: use minified version! -->
+	<script src="./jquery-ui-1.12.1.custom/jquery-ui.js"></script>				<!-- FIXME: use minified version! -->
 	<script>
 		// === CONSTANTS ===
 		var TIME_MINUTES_MIN = 		0;
@@ -175,9 +175,10 @@
 				stop: 		function( event, ui ) {
 								// create a timeout-timer to delay the "commit" of the given slider value
 								var timeout_timer = setInterval(function() { 
-																	var eventSource = event.target.id;
+																	var eventSource = event.target.id;	// == sliderId
 																	$( "#pending_indication" ).val("DONE");
-																	console.log("Committing update on Timer '" + eventSource + "'");
+																	// ACTUAL NOTIFICATION VIA POST
+																	notifyUpdate(eventSource, timerdefinitions[eventSource].from, timerdefinitions[eventSource].to);
 																	// delete timer after first execution
 																	clearInterval(timeout_timer);
 																}, 
@@ -221,25 +222,25 @@
 	  	// === /JSON example ===
 
 	  	// === POST /timer/{id} --- create timer ===
-		var jqxhr = $.getJSON( "example.json", function() {
-		  console.log( "success" );
-		} )
-			.done(function() {
-		    	console.log( "second success" );
-		  	})
-			.fail(function(e) {
-		    	console.log( "error: " + e.status );
-		  	})
-		  	.always(function() {
-		    	console.log( "complete" );
-		  	});
+		function notifyUpdate(timerId, from, to) {
+			console.log( "Committing update on Timer '%s': from=%d, to=%d", timerId, from, to );
+			$.post( "timer/" + timerId, 
+				{ from: from, to: to } 
+				)
+				.done(function( data ) {
+					console.log("[notifyUpdate]  POST successful!");
+			  	})
+			  	.fail(function(e) {
+					console.log("[notifyUpdate]  POST ***NOT*** successful! Error: " + e.status );
+			  	});
+		}
 	  	// === /POST /timer/{id} --- create timer ===
 
 		// === BUTTON ===
 		$( "#mybutton" ).click(function( event ) {
 			console.log(" CLICK " );
-			var __from = 	$( "#from" ).val()
-			var __to = 		$( "#to" ).val();
+			var __from = 	123;
+			var __to = 		456;
 			
 			$.post( "timer/0", { from: __from, to: __to } )
 				.done(function( data ) {
