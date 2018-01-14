@@ -80,6 +80,8 @@
 		var POSTFIX_TO 						= "_to";
 		var POSTFIX_FROM_DAYTIME 			= "_from_daytime";
 		var POSTFIX_TO_DAYTIME 				= "_to_daytime";
+		var POSTFIX_BUTTON_CLOSE			= "_button_close";
+		var POSTFIX_SLIDERCONTAINERDIV 		= "_slider_container_div"
 
 		// === VARS ===
 		var timerdefinitions 				= {}
@@ -177,7 +179,7 @@
     		// --- create and add timer SLIDER ---
 			// CONTAINER DIV
 			var containerDiv = document.createElement("div");
-			containerDiv.id = "slider_container_" + key
+			containerDiv.id = PREFIX_DYNAMICINPUTS + key + POSTFIX_SLIDERCONTAINERDIV;
 			var _title = document.createElement("p");
 			_title.append("Timer: '" + key + "'");
 			containerDiv.append( _title );
@@ -225,20 +227,29 @@
 			});
 			// INPUT STUFF: set up HTML DIV for new Slider
 			var _from_Input = 			document.createElement( "input" );
-			_from_Input.id = 			"_" + key + POSTFIX_FROM;
+			_from_Input.id = 			PREFIX_DYNAMICINPUTS + key + POSTFIX_FROM;
 			var _to_Input = 			document.createElement( "input" );
-			_to_Input.id = 				"_" + key + POSTFIX_TO;
+			_to_Input.id = 				PREFIX_DYNAMICINPUTS + key + POSTFIX_TO;
 			var _from_daytime_Input = 	document.createElement( "input" );
-			_from_daytime_Input.id = 	"_" + key + POSTFIX_FROM_DAYTIME;
+			_from_daytime_Input.id = 	PREFIX_DYNAMICINPUTS + key + POSTFIX_FROM_DAYTIME;
 			var _to_daytime_Input = 	document.createElement( "input" );
-			_to_daytime_Input.id = 		"_" + key + POSTFIX_TO_DAYTIME;
+			_to_daytime_Input.id = 		PREFIX_DYNAMICINPUTS + key + POSTFIX_TO_DAYTIME;
+			var button_close = 			document.createElement( "button" );
+			button_close.id = 			PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE;
 			containerDiv.append(		_from_Input, 
 										_to_Input, 
 										document.createElement("br"),	// FIXME: CSS!!!
 										_from_daytime_Input, 
 										_to_daytime_Input,
+										document.createElement("br"),	// FIXME: CSS!!!
+										button_close,
 										document.createElement("p")		// FIXME: CSS!!!
 										);
+			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).text("X");
+			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).click(function( event ) {
+				console.log("[BUTTON] CLOSE" );
+				$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_SLIDERCONTAINERDIV ).remove();
+			});
 			// init
 			updateTime(key, _val_from, _val_to);
 		}
