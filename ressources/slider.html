@@ -60,6 +60,8 @@
 	<p>&nbsp;</p>
 	<input id="from_time" title="from_time" value="">
 	<input id="to_time" title="to_time" value="">
+	<p>&nbsp;</p>
+	<input id="pending_indication" title="pending_indication" value="DONE">
 </div>
 
 <script src="./jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
@@ -158,12 +160,22 @@
 
 		// define callback "slide" (mousemove)
 		$( "#slider" ).slider({
-		  slide: function( event, ui ) {},
+		  start: 	function( event, ui ) {
+		  	$( "#pending_indication" ).val("PENDING");
+		  },
+		  stop: 	function( event, ui ) {
+		  	// === create a timeout-timer to delay the "commit" of the given slider value ===
+		  	var timeout_timer = setInterval( function() { 
+		  		$( "#pending_indication" ).val("DONE");
+		  		// delete
+		  		clearInterval(timeout_timer);
+		  	}, 2000);
+		  },
+		  slide: 	sliderupdatecallback,
 		  //create: function( event, ui ) {}
 		});
 		// register listener
-		//$( "#slider" ).on( "create", sliderupdatecallback);
-		$( "#slider" ).on( "slide", sliderupdatecallback);
+		//$( "#slider" ).on( "slide", sliderupdatecallback);
 		
 	</script>
 
