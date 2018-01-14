@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<title>RANGE SLIDER</title>
-	<link href="./jquery-ui-1.12.1.custom/jquery-ui.css" rel="stylesheet">	<!-- FIXME: use minified version! -->
+	<link href="jquery-ui.min.css" rel="stylesheet">	<!-- FIXME: use minified version! -->
 	<style>
 	body{
 		font-family: "Trebuchet MS", sans-serif;
@@ -62,8 +62,14 @@
 	<button id="mybutton">TEST2</button>
 </div>
 
-<script src="./jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>		<!-- FIXME: use minified version! -->
-	<script src="./jquery-ui-1.12.1.custom/jquery-ui.js"></script>				<!-- FIXME: use minified version! -->
+<!--
+	NOTE:
+	  * NodeMCU does not support folders. thus, i copied everything plain to flash
+<script src="./jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
+	<script src="./jquery-ui-1.12.1.custom/jquery-ui.js"></script>
+-->
+<script src="jquery.js"></script>						<!-- FIXME: use minified version! -->
+	<script src="jquery-ui.min.js"></script>				<!-- FIXME: use minified version! -->
 	<script>
 		// === CONSTANTS ===
 		var SLIDER_UPDATE_COMMIT_TIMEOUT 	= 1000;

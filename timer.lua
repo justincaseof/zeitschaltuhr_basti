@@ -28,10 +28,16 @@ function switchOff()
     gpio.write(relais_out_pin,          gpio.LOW)
 end
 
+function isOn()
+    return (gpio.read(relais_out_pin) == 0)
+end
+
+local FIRST_RUN = true
+
 -- initially (and permanently) switch on blue LED on ESP8266 board
 gpio.write(blue_led_pin, gpio.LOW)
--- initially switch on the relais
-switchOn()
+-- initially switch off the relais
+switchOff()
 
 -----------------------------
 -- WIFI setup switch check --
@@ -45,11 +51,10 @@ function isWifiSetupActive()
     return false
 end
 
-------------------------
--- timer config stuff --
-------------------------
+----------------------------------
+-- Timer/Scheduler config stuff --
+----------------------------------
 -- Line format: {identifier}:{from}:{to}
-print(" #################### ")
 if file.open("timerconfigs.txt", "rw") then
     print(" FILE!")
     myline = "0:1:2"
@@ -60,7 +65,20 @@ if file.open("timerconfigs.txt", "rw") then
     end
     file.close()
 end
-timerconfigs = {}
+-- DEBUG: set up dummy config
+TIMERDEFINITIONS = { }
+TIMERDEFINITIONS['tim0'] = { 
+    ["from"]            = 360, 
+    ["to"]              = 480, 
+    ["last_check"]      = 0,    -- remember unix timestamp of last check
+    ["current_state"]   = 0     -- keep track of the current state
+}
+TIMERDEFINITIONS['tim1'] = { 
+    ["from"]            = 1100, 
+    ["to"]              = 1260, 
+    ["last_check"]      = 0,    -- remember unix timestamp of last check
+    ["current_state"]   = 0     -- keep track of the current state
+}
 
 ----------
 -- SNTP --
@@ -108,7 +126,7 @@ end
 ------------------
 -- STATES  --
 ------------------
--- 0: off, 1: on, 2: timer
+-- 0: off, 1: on, 2: timer active
 relais_state = 2
 -- initial delay (FIXME TODO: persist in flash)
 seconds_until_switchoff_counter = 1800
@@ -122,36 +140,38 @@ local timer1_id = 0
 local timer1_timeout_millis = 1000
 tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     -- SNTP TIME --
-    -- EXAMPLE: unix_time_millis, microseconds, rate = rtctime.get()
     tm = rtctime.epoch2cal(rtctime.get())
-    print(string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"]))
     unix_time_millis = string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
+    minutesofday = tm["hour"] * 60 + tm["min"]
     syncSNTP()  -- ask for sync
 
     -- LOG --
     print("tick")
-    print("  -> relais_state: " .. (relais_state or "?"))
-    print("  -> seconds_until_switchoff_counter: " .. (seconds_until_switchoff_counter or "?"))
+    --print("  -> relais_state: " .. (relais_state or "?"))
     print("  -> IP: " .. (wifi.sta.getip() or "?"))
     print("  -> time: " .. unix_time_millis)
+    print("  -> minutesofday: " .. minutesofday)
     
-    -- railais_state --
-    if tonumber(relais_state) == 2 then
-        seconds_until_switchoff_counter = seconds_until_switchoff_counter-1
-        if seconds_until_switchoff_counter < 0 then 
-            relais_state = 0
-            seconds_until_switchoff_counter = 0
-            switchOff()
-        else
-            switchOn()
-        end
-    elseif tonumber(relais_state) == 1 then
+    -- 1) identify and calculate railais_state --
+    local _switchOnRequested    = false
+    local _switchOffRequested   = false
+    local _in_range             = false
+    for k, v in pairs(TIMERDEFINITIONS) do
+        local previous_state        = relais_state
+        local _from                 = v["from"]
+        local _to                   = v["to"]
+        _in_range = (_in_range) or (minutesofday >= _from and minutesofday <= _to)
+        print("  -> Processing timer '" .. k .. "': from=" .. _from .. ", to=" .. _to)
+        print("  -> _in_range: " .. ((_in_range and "true") or "false"))
+    end
+
+    -- 3.1) switch in first run
+    if (_in_range) then
+        print("  ---- ON -----")
         switchOn()
-    elseif tonumber(relais_state) == 0 then
-        switchOff()
     else
-        print(" weird relais_state: " .. relais_state or "nil")
-        relais_state = 0
+        print("  ---- OFF -----")
+        switchOff()
     end
 
     -- === WIFI SETUP CHECK ===
@@ -168,7 +188,7 @@ tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     print("  -> heap: " .. node.heap())
     -- /GC
 
-    tmr.start(timer1_id)
+    tmr.start(timer1_id)    -- restart timer for creating a proper loop
 end)
 tmr.start(timer1_id)
 print(" timer1 started (switch relais)");
@@ -238,8 +258,9 @@ if srv~=nil then
 end
 
 local function Sendfile(sck, filename, sentCallback)
-    --print("opening file "..filename.."...")
+    print("opening file '" .. filename .. "'...")
     if not file.open(filename, "r") then
+        print(" cannot open file '" .. filename .. "'")
         sck:close()
         return
     end
@@ -263,7 +284,13 @@ end
 ----------------
 -- Web Server --
 ----------------
-
+--[[
+"REST":
+============
+    GET     TODO
+    POST    http://ip:port/timer/{timer_id} --> create/update timer
+    DELETE  http://ip:port/timer/{timer_id} --> delete timer
+]]--
 -- == START ACTUAL WEB SERVER ==
 local srv = net.createServer(net.TCP)
 srv:listen(80, function(conn)
@@ -279,12 +306,23 @@ srv:listen(80, function(conn)
         --print(payload)
 
         -- === FUNCTIONS ===
-        local function respondMain()
+        local function respondRoot(sck, path)
+            if (path == nil or path == "" or path == "/" or path == "index.html") then
+                path = "slider.html"
+            end
+            if ( string.sub(path, 1, 1) == "/" ) then                     -- "startsWith"
+                print(" --------- SLASH. before: " .. path)
+                path = string.sub(path, 2)
+                print(" --------- SLASH. after: " .. path)
+            else
+                print(" --------- NO SLASH")
+            end
+            print("  # path: '" .. path .. "'")
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n" ..
                 "Content-Type: text/html; charset=UTF-8\r\n\r\n", 
                 function()
-                    Sendfile(sck, "1.html", 
+                    Sendfile(sck, path, 
                         function() 
                             sck:send("seconds_until_switchoff_counter: " .. seconds_until_switchoff_counter or "?", 
                             function() 
@@ -296,7 +334,7 @@ srv:listen(80, function(conn)
                 end)
         end
 
-        local function respondStatus()
+        local function respondStatus(sck)
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n"..
                 "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
@@ -329,7 +367,7 @@ srv:listen(80, function(conn)
                 end)
         end
 
-        local function handleGET(path)
+        local function handleGET(payload, path)
             --print("### handleGET() ###")
             -- path?
             if string.match(path, "status") then
@@ -337,7 +375,7 @@ srv:listen(80, function(conn)
                 respondStatus(sck)
             else
                 --print(" - respondMain()") 
-                respondMain(sck)
+                respondRoot(sck, path)
             end
         end
 
@@ -355,11 +393,12 @@ srv:listen(80, function(conn)
             end
         end
 
-        local function handlePOST(path)
+        local function handlePOST(payload, path)
             --print("### handlePOST() ###")
             -- path?
-            if string.match(path, "status") then
-                -- POST @ path "/status" --> application/json
+            if string.match(path, "timer/") then
+                -- POST @ path "/timer" --> application/json
+
                 local whitespace1, POST_seconds_until_switchoff_counter = string.match(payload, "\"seconds_until_switchoff_counter\":(%s*)(%d*)")
                 local whitespace2, POST_relais_state = string.match(payload, "\"relais_state\":(%s*)(%d)")
                 --print("  POST_seconds_until_switchoff_counter: " .. (POST_seconds_until_switchoff_counter or "?"))
@@ -374,15 +413,15 @@ srv:listen(80, function(conn)
                 handlePOSTcontent(POST_seconds_until_switchoff_counter, POST_relais_state)
             end
             
-            respondMain()
+            respondRoot()
         end
         -- === FUNCTIONS - END ===
     
         -- === ACTUAL EVALUATION ===
         local GET_requestpath = string.match(payload, "GET (.*) HTTP") --or "N/A"
         local POST_requestpath = string.match(payload, "POST (.*) HTTP") --or "N/A"
-        --print(" GET_requestpath: " .. (GET_requestpath or "???") )
-        --print(" POST_requestpath: " .. (POST_requestpath or "???") )
+        print(" GET_requestpath: " .. (GET_requestpath or "???") )
+        print(" POST_requestpath: " .. (POST_requestpath or "???") )
         
         if GET_requestpath then
             handleGET(payload, GET_requestpath)
