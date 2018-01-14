@@ -54,7 +54,7 @@
 <!-- Slider -->
 <h2 class="demoHeaders">Sliders</h2>
 <div class="sliderdefinitions"></div>
-
+<button id="button_addTimer">( + )</button>
 <div>
 	<p>&nbsp;</p>
 	<h2 class="demoHeaders">Test</h2>
@@ -80,6 +80,9 @@
 		var POSTFIX_TO 						= "_to";
 		var POSTFIX_FROM_DAYTIME 			= "_from_daytime";
 		var POSTFIX_TO_DAYTIME 				= "_to_daytime";
+
+		// === VARS ===
+		var timerdefinitions 				= {}
 
 		// === FUNCTIONS ===
 		// Slider adjustment finish event
@@ -163,18 +166,18 @@
 					console.log("[notifyUpdate]  POST ***NOT*** successful! Error: " + e.status );
 			  	});
 		}
-		
-		// === TIMER DEFINITIONS ===
-		var timerdefinitions = {};
-		timerdefinitions["tim0"] = { from: 360, to: 480 };
-		timerdefinitions["tim1"] = { from: 540, to: 920 };
-		// dynamically create timer sliders
-		Object.keys(timerdefinitions).forEach(function (key) { 
-    		var value = timerdefinitions[key];
-    		console.log("adding timer: '" + key + "': %o", value);
+
+		// == ADD TIMER ==
+		function addTimer(timerIdArg, _val_from, _val_to) {
+			var key = timerIdArg
+    		console.log("adding timer: '" + key);
+    		// -- add to lacal map --
+    		timerdefinitions[timerIdArg] = { from: _val_from, to: _val_to };
+
     		// --- create and add timer SLIDER ---
 			// CONTAINER DIV
 			var containerDiv = document.createElement("div");
+			containerDiv.id = "slider_container_" + key
 			var _title = document.createElement("p");
 			_title.append("Timer: '" + key + "'");
 			containerDiv.append( _title );
@@ -189,7 +192,7 @@
 				step: 		15,
 				min: 		TIME_MINUTES_MIN,
 				max: 		TIME_MINUTES_MAX,
-				values: 	[ value.from, value.to ],
+				values: 	[ _val_from, _val_to ],
 				// === EVENTS ===
 				// updates input fields according to slider position
 				slide: 		sliderupdatecallback,
@@ -237,11 +240,21 @@
 										document.createElement("p")		// FIXME: CSS!!!
 										);
 			// init
-			updateTime(key, value.from, value.to);
-		});
+			updateTime(key, _val_from, _val_to);
+		}
 		
-
-
+		// === TIMER DEFINITIONS ===
+		/****
+		var timerdefinitions = {};
+		timerdefinitions["tim0"] = { from: 360, to: 480 };
+		timerdefinitions["tim1"] = { from: 540, to: 920 };
+		// dynamically create timer sliders
+		Object.keys(timerdefinitions).forEach(function (key) { 
+    		addTimer(key, tim)
+		});
+		******/
+		addTimer("tim0", 360, 480)
+		addTimer("tim1", 540, 920)
 
 		// === JSON example ===
 		var jqxhr = $.getJSON( "example.json", function() {
@@ -259,9 +272,14 @@
 	  	// === /JSON example ===
 
 
-		// === BUTTON ===
+		// === BUTTONS ===
+		$( "#button_addTimer" ).click(function( event ) {
+			console.log("[BUTTON] addTimer" );
+			addTimer("tim_" + Date.now(), 30, 900)
+		})
+
 		$( "#mybutton" ).click(function( event ) {
-			console.log(" CLICK " );
+			console.log("[BUTTON] mybutton" );
 			var __from = 	123;
 			var __to = 		456;
 			
@@ -275,7 +293,7 @@
 
 			event.preventDefault();
 		});
-		// === /BUTTON ===
+		// === /BUTTONS ===
 		
 	</script>
 
