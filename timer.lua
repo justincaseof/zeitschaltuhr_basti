@@ -281,6 +281,21 @@ local function Sendfile(sck, filename, sentCallback)
     sendChunk()
 end
 
+-- application/javascript -- text/css -- text/html --
+local function getContentType(path)
+   if (string.match(path, "\.(html)$")) then
+        result = "text/html"
+    elseif (string.match(path, "\.(css)$")) then
+        result = "text/css"
+    elseif (string.match(path, "\.(js)$")) then
+        result = "application/javascript"
+    else
+        result = "text"
+    end
+    print("  ### Content-Type = " .. result)
+    return result
+end
+
 ----------------
 -- Web Server --
 ----------------
@@ -302,8 +317,8 @@ srv:listen(80, function(conn)
         else
             payload = request_payload
         end
-        -- ATTENTION: print payload for debugging purposes only!
-        --print(payload)
+
+        --print(payload)        -- DEBUG
 
         -- === FUNCTIONS ===
         local function respondRoot(sck, path)
@@ -311,25 +326,24 @@ srv:listen(80, function(conn)
                 path = "slider.html"
             end
             if ( string.sub(path, 1, 1) == "/" ) then                     -- "startsWith"
-                print(" --------- SLASH. before: " .. path)
                 path = string.sub(path, 2)
-                print(" --------- SLASH. after: " .. path)
             else
-                print(" --------- NO SLASH")
+                
             end
             print("  # path: '" .. path .. "'")
+            local contentType = getContentType(path)
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n" ..
-                "Content-Type: text/html; charset=UTF-8\r\n\r\n", 
+                "Content-Type: " .. contentType .. "; charset=UTF-8\r\n\r\n", 
                 function()
                     Sendfile(sck, path, 
                         function() 
-                            sck:send("seconds_until_switchoff_counter: " .. seconds_until_switchoff_counter or "?", 
-                            function() 
+                            --sck:send("seconds_until_switchoff_counter: " .. seconds_until_switchoff_counter or "?", 
+                            --function() 
                                 sck:close()
                                 sck = nil
                                 collectgarbage()
-                            end)
+                            --end)
                         end)
                 end)
         end
