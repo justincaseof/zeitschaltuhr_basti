@@ -129,6 +129,21 @@
 		// init
 		updateTime(_from, _to);
 
+		// === JSON example ===
+		var jqxhr = $.getJSON( "example.json", function() {
+		  console.log( "success" );
+		} )
+			.done(function() {
+		    	console.log( "second success" );
+		  	})
+			.fail(function(e) {
+		    	console.log( "error: " + e.status );
+		  	})
+		  	.always(function() {
+		    	console.log( "complete" );
+		  	});
+	  	// === /JSON example ===
+
 		var sliderupdatecallback = function( event, ui ) {
 			console.log("hit! " + "from: " + ui.values[0] + " to: " + ui.values[1]);
 			updateTime(ui.values[0], ui.values[1]);
