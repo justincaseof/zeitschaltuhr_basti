@@ -54,6 +54,7 @@
 <h2 class="demoHeaders">Slider</h2>
 <div id="slider"></div>
 <div>
+	<p>&nbsp;</p>
 	<input id="from" title="from" value=""> 
 	<input id="to" title="to" value=""> 
 	<p>&nbsp;</p>
@@ -71,6 +72,7 @@
 		var _to = 480;
 		$( "#slider" ).slider({
 			range: true,
+			step: 15,
 			min: time_minutes_min,
 			max: time_minutes_max,
 			values: [ _from, _to ]
@@ -104,9 +106,7 @@
 			var to_hours = Math.floor(to / 60);
 			var to_minutes = to % 60;
 			
-			console.log("from_hours: " + from_hours + ", from_minutes: " + from_minutes);
-			console.log("to_hours: " + to_hours + ", to_minutes: " + to_minutes);
-			
+			// leading zeros
 			if (from_hours < 10) {
 				from_hours = "0" + from_hours;
 			}
@@ -119,6 +119,13 @@
 			if (to_minutes < 10) {
 				to_minutes = "0" + to_minutes;
 			}
+			// 24:00 == 00:00
+			if (to_hours == 24) {
+				to_hours = "00";
+			}
+
+			console.log("from_hours: " + from_hours + ", from_minutes: " + from_minutes);
+			console.log("to_hours: " + to_hours + ", to_minutes: " + to_minutes);
 
 			$( "#from" ).val(from);
 			$( "#to" ).val(to);
