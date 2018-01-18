@@ -362,13 +362,27 @@ srv:listen(80, function(conn)
                 end)
         end
 
-        local function respondStatus(sck)
+        local function respondTimers()
+            local first = true
+            local json = "{"
+            for _timerId in pairs(TIMERDEFINITIONS) do
+                if (first) then
+                    first = false
+                else
+                    json = json .. ","
+                end
+                json = json .. "\"" .. _timerId .. "\":" .. "{" ..
+                        "\"from\":" .. TIMERDEFINITIONS[_timerId]["from"] .. "," ..
+                        "\"to\":" .. TIMERDEFINITIONS[_timerId].to ..
+                    "}"
+            end
+            json = json .. "}"
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n"..
                 "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
-                "{\"seconds_until_switchoff_counter\":" .. seconds_until_switchoff_counter .. 
-                ",\"relais_state\":" .. relais_state .. "}", 
+                json,
                 function()
+                    SEMAPHORE_TAKEN = false
                     sck:close()
                     sck = nil
                     collectgarbage()
@@ -401,6 +415,8 @@ srv:listen(80, function(conn)
             if string.match(path, "status") then
                 --print(" - respondStatus()")
                 respondStatus(sck)
+            elseif string.match(path, "timer") then
+                respondTimers()
             else
                 --print(" - respondMain()") 
                 respondRoot(sck, path)
