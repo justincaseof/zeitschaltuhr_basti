@@ -379,6 +379,7 @@ srv:listen(80, function(conn)
             json = json .. "}"
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n"..
+                "Access-Control-Allow-Origin: *\r\n" ..
                 "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
                 json,
                 function()
