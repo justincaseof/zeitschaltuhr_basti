@@ -245,7 +245,7 @@
 										button_close,
 										document.createElement("p")		// FIXME: CSS!!!
 										);
-			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).text("X");
+			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).text("( X )");
 			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).click(function( event ) {
 				console.log("[BUTTON] CLOSE" );
 				$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_SLIDERCONTAINERDIV ).remove();
@@ -264,21 +264,25 @@
     		addTimer(key, tim)
 		});
 		******/
-		addTimer("tim0", 360, 480)
-		addTimer("tim1", 540, 920)
+		//addTimer("tim0", 360, 480)
+		//addTimer("tim1", 540, 920)
 
 		// === JSON example ===
-		var jqxhr = $.getJSON( "example.json", function() {
-		  console.log( "success" );
-		} )
+		var url = "timers";
+		//var url = "http://192.168.178.52/timers"
+		var jqxhr = $.getJSON( url, function(jsonData) {
+			$.each(jsonData, function(_timerId, val) {
+				addTimer(_timerId, val.from, val.to);
+			});
+		})
 			.done(function() {
-		    	console.log( "second success" );
+		    	console.log( "jqxhr second success" );
 		  	})
 			.fail(function(e) {
-		    	console.log( "error: " + e.status );
+		    	console.log( "jqxhr error: " + e.status );
 		  	})
 		  	.always(function() {
-		    	console.log( "complete" );
+		    	console.log( "jqxhr complete" );
 		  	});
 	  	// === /JSON example ===
 
