@@ -72,6 +72,8 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 	<script>
 		// === CONSTANTS ===
+		//var URL_PREFIX_INCLUDING_ENDING_SLASH = ""		-- NodeMCU
+		var URL_PREFIX_INCLUDING_ENDING_SLASH = "http://192.168.178.52/"
 		var SLIDER_UPDATE_COMMIT_TIMEOUT 	= 1000;
 		var TIME_MINUTES_MIN 				= 0;
 		var TIME_MINUTES_MAX 				= 1440;
@@ -82,6 +84,7 @@
 		var POSTFIX_TO_DAYTIME 				= "_to_daytime";
 		var POSTFIX_BUTTON_CLOSE			= "_button_close";
 		var POSTFIX_SLIDERCONTAINERDIV 		= "_slider_container_div"
+		var UPDATE_TIMER_COMMITT_PENDING	= false
 
 		// === VARS ===
 		var timerdefinitions 				= {}
@@ -103,6 +106,8 @@
 			// UPDATE VALUES
 			timerdefinitions[timerId].from 	= from;
 			timerdefinitions[timerId].to 	= to;
+
+			// FIXME: isn't there a lib for the "parsing", "formatting" and "validation" stuff???
 
 			// validation 1: start must be before end
 			if (from > to) {
@@ -155,12 +160,11 @@
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM_DAYTIME )	.val( to_hours + ":" + to_minutes );
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO_DAYTIME )		.val( from_hours + ":" + from_minutes );
 		}
-		// Create or update timer: HTTP POST /timer/{id}
-		function notifyUpdate(timerId, from, to) {
+		// Create or update timers: HTTP POST /timers
+		function notifyUpdate() { //(timerId, from, to) {
 			console.log( "Committing update on Timer '%s': from=%d, to=%d", timerId, from, to );
-			$.post( "timer/" + timerId, 
-				{ from: from, to: to } 
-				)
+			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timer";
+			$.post( url, timerdefinitions )
 				.done(function( data ) {
 					console.log("[notifyUpdate]  POST successful!");
 			  	})
@@ -206,8 +210,8 @@
 				// sets a field to show "DONE" status
 				stop: 		function( event, ui ) {
 								var eventSource = event.target.id;									// == sliderId == timerId
-								if ( !timerdefinitions[eventSource].updateCommitPending ) {			// ony update if it is still neccessary
-									timerdefinitions[eventSource].updateCommitPending = true;
+								if ( !UPDATE_TIMER_COMMITT_PENDING ) {			// ony update if it is still neccessary
+									UPDATE_TIMER_COMMITT_PENDING = true;
 									// create a timeout-timer to delay the "commit" of the given slider value
 									var timeout_timer = setInterval(function() { 
 																		// Keep track of our activities to avoid double invocation
@@ -216,7 +220,7 @@
 																		notifyUpdate(eventSource, 						//  == sliderId
 																					timerdefinitions[eventSource].from, // get that from our hashmap
 																					timerdefinitions[eventSource].to);	// get that from our hashmap
-																		timerdefinitions[eventSource].updateCommitPending = false;
+																		UPDATE_TIMER_COMMITT_PENDING = false;
 																		clearInterval(timeout_timer);					// delete timer after first execution
 																	}, 
 																	SLIDER_UPDATE_COMMIT_TIMEOUT);
@@ -268,8 +272,7 @@
 		//addTimer("tim1", 540, 920)
 
 		// === JSON example ===
-		var url = "timers";
-		//var url = "http://192.168.178.52/timers"
+		var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timers";
 		var jqxhr = $.getJSON( url, function(jsonData) {
 			$.each(jsonData, function(_timerId, val) {
 				addTimer(_timerId, val.from, val.to);
@@ -295,15 +298,20 @@
 
 		$( "#mybutton" ).click(function( event ) {
 			console.log("[BUTTON] mybutton" );
-			var __from = 	123;
-			var __to = 		456;
+			var jsonPOSTcontent = "{";
 			
-			$.post( "timer/0", { from: __from, to: __to } )
-				.done(function( data ) {
+			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timers"
+			$.post( url, TODO )
+				.done(function( jsonResponseContentContainingTimers ) {
 					console.log("  POST successful!");
+					// FIXME TODO: update the timers from the response content
+					$.each(jsonResponseContentContainingTimers, function(_timerId, val) {
+						addTimer(_timerId, val.from, val.to);
+					});
 			  	})
 			  	.fail(function(e) {
 					console.log("  POST ***NOT*** successful! Error: " + e.status );
+					// FIXME TODO: invalidate the timers as long as there is no response from NodeMCU
 			  	});
 
 			event.preventDefault();

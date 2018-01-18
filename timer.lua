@@ -347,7 +347,7 @@ srv:listen(80, function(conn)
             local contentType = getContentType(path)
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n" ..
-                "Connection: close" .. 
+                "Connection: close\r\n" .. 
                 "Content-Type: " .. contentType .. "; charset=UTF-8\r\n\r\n", 
                 function()
                     Sendfile(sck, path, 
@@ -380,6 +380,7 @@ srv:listen(80, function(conn)
             sck:send("HTTP/1.1 200 OK\r\n" ..
                 "Server: NodeMCU on ESP8266\r\n"..
                 "Access-Control-Allow-Origin: *\r\n" ..
+                "Connection: close\r\n" .. 
                 "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
                 json,
                 function()
@@ -424,41 +425,16 @@ srv:listen(80, function(conn)
             end
         end
 
-        -- handle posted data updates
-        local function handlePOSTcontent(POST_seconds_until_switchoff_counter, POST_relais_state)
-            if POST_seconds_until_switchoff_counter and tonumber(POST_relais_state)==2 then
-               seconds_until_switchoff_counter = POST_seconds_until_switchoff_counter
-            end
-
-            if POST_relais_state then
-                relais_state = POST_relais_state
-                -- reset counters
-                if tonumber(POST_relais_state)==0 then seconds_until_switchoff_counter = 0 end
-                if tonumber(POST_relais_state)==1 then seconds_until_switchoff_counter = 0 end
-            end
-        end
+        
 
         local function handlePOST(payload, path)
-            --print("### handlePOST() ###")
-            -- path?
-            if string.match(path, "timer/") then
-                -- POST @ path "/timer" --> application/json
-
-                local whitespace1, POST_seconds_until_switchoff_counter = string.match(payload, "\"seconds_until_switchoff_counter\":(%s*)(%d*)")
-                local whitespace2, POST_relais_state = string.match(payload, "\"relais_state\":(%s*)(%d)")
-                --print("  POST_seconds_until_switchoff_counter: " .. (POST_seconds_until_switchoff_counter or "?"))
-                --print("  POST_relais_state: " .. (POST_relais_state or "?"))
-                handlePOSTcontent(POST_seconds_until_switchoff_counter, POST_relais_state)
-            else
-                -- POST @ path "/" --> application/x-www-form-urlencoded
-                local POST_seconds_until_switchoff_counter = string.match(payload, "seconds_until_switchoff_counter=(%d*)")
-                local POST_relais_state = string.match(payload, "relais_state=(%d)")
-                --print("  POST_seconds_until_switchoff_counter: " .. (POST_seconds_until_switchoff_counter or "?"))
-                --print("  POST_relais_state: " .. (POST_relais_state or "?"))
-                handlePOSTcontent(POST_seconds_until_switchoff_counter, POST_relais_state)
+            print("### handlePOST() ###")
+            respondTimers()
+            if string.match(path, "timers") then
+                -- POST @ path "/timers" --> application/json
+                print("TIMEEEEEERRRRRRRRRRRRRRRRRRRRRRRRSSSSSSSSSSSSSSSSSSSSSSSSSS")
+                -- TODO FIXME WHAT NOW? aaah! parse the input !!
             end
-            
-            respondRoot()
         end
         -- === FUNCTIONS - END ===
     
