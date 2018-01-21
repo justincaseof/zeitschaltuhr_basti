@@ -70,15 +70,28 @@ TIMERDEFINITIONS = { }
 TIMERDEFINITIONS['tim0'] = { 
     ["from"]            = 360, 
     ["to"]              = 480, 
-    ["last_check"]      = 0,    -- remember unix timestamp of last check
-    ["current_state"]   = 0     -- keep track of the current state
 }
 TIMERDEFINITIONS['tim1'] = { 
     ["from"]            = 1100, 
     ["to"]              = 1260, 
-    ["last_check"]      = 0,    -- remember unix timestamp of last check
-    ["current_state"]   = 0     -- keep track of the current state
 }
+
+local function addOrUpdateTimer(_timerId, _from, _to)
+    print("adding Timer -->")
+    print("  _timerId: " .. _timerId)
+    print("  val.from: " .. _from)
+    print("  val.to  : " .. _to)
+
+    -- clear old values
+    for k,v in pairs(TIMERDEFINITIONS) do
+        TIMERDEFINITIONS[k] = nil
+    end
+
+    TIMERDEFINITIONS[_timerId] = {
+        ["from"]            = _from, 
+        ["to"]              = _to
+    }
+end
 
 ----------
 -- SNTP --
@@ -365,15 +378,15 @@ srv:listen(80, function(conn)
         local function respondTimers()
             local first = true
             local json = "{"
-            for _timerId in pairs(TIMERDEFINITIONS) do
+            for _timerId, val in pairs(TIMERDEFINITIONS) do
                 if (first) then
                     first = false
                 else
                     json = json .. ","
                 end
                 json = json .. "\"" .. _timerId .. "\":" .. "{" ..
-                        "\"from\":" .. TIMERDEFINITIONS[_timerId]["from"] .. "," ..
-                        "\"to\":" .. TIMERDEFINITIONS[_timerId].to ..
+                        "\"from\":" .. val["from"] .. "," ..
+                        "\"to\":" .. val.to ..
                     "}"
             end
             json = json .. "}"
@@ -425,16 +438,31 @@ srv:listen(80, function(conn)
             end
         end
 
-        
+        local function safelyUpdateTimersFromJSON(_json)
+            print(" ---1 ")
+            local result = sjson.decode(_json)
+            print(" ---2 ")
+            for _timerId, val in pairs(result) do 
+                print(" --->>> ")
+                addOrUpdateTimer(_timerId, val["from"], val["to"])
+            end
+        end
 
         local function handlePOST(payload, path)
             print("### handlePOST() ###")
-            respondTimers()
+            
             if string.match(path, "timers") then
                 -- POST @ path "/timers" --> application/json
+                local _json = string.match(payload, "{.*}")      -- extract JSON from payload
                 print("TIMEEEEEERRRRRRRRRRRRRRRRRRRRRRRRSSSSSSSSSSSSSSSSSSSSSSSSSS")
-                -- TODO FIXME WHAT NOW? aaah! parse the input !!
+                print("------------")
+                print(_json)
+                print("------------")
+                safelyUpdateTimersFromJSON(_json)
             end
+
+            respondTimers()
+
         end
         -- === FUNCTIONS - END ===
     
