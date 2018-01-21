@@ -52,9 +52,12 @@
 <body>
 
 <!-- Slider -->
-<h2 class="demoHeaders">Sliders</h2>
+<h2 class="demoHeaders">Sliders <input type="button" value="(reload)" onClick="window.location.reload()"></h2>
+<div id="no-response-indicator" visible="false">-- cannot load timers --</div>
 <div class="sliderdefinitions"></div>
 <button id="button_addTimer">( + )</button>
+
+<!--
 <div>
 	<p>&nbsp;</p>
 	<h2 class="demoHeaders">Test</h2>
@@ -62,6 +65,7 @@
 	<input type="submit" name="seconds_until_switchoff_counter" value="10" onclick="">
 	<button id="mybutton">TEST2</button>
 </div>
+-->
 
 <!--
 	NOTE:
@@ -85,6 +89,7 @@
 		var POSTFIX_BUTTON_CLOSE			= "_button_close";
 		var POSTFIX_SLIDERCONTAINERDIV 		= "_slider_container_div"
 		var UPDATE_TIMER_COMMITT_PENDING	= false
+		var TIMER_SLIDER_DIV_CLASS			= "timer_slider_div_class"
 
 		// === VARS ===
 		var timerdefinitions 				= {}
@@ -162,7 +167,7 @@
 		}
 		// Create or update timers: HTTP POST /timers
 		function notifyUpdate() { //(timerId, from, to) {
-			console.log( "Committing update on Timer '%s': from=%d, to=%d", timerId, from, to );
+			console.log( "Committing update on Timers" )
 			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timer";
 			$.post( url, timerdefinitions )
 				.done(function( data ) {
@@ -170,6 +175,7 @@
 			  	})
 			  	.fail(function(e) {
 					console.log("[notifyUpdate]  POST ***NOT*** successful! Error: " + e.status );
+					$( ".sliderdefinitions" ).empty()
 			  	});
 		}
 
@@ -190,6 +196,7 @@
 			// CREATE SLIDER DIV
 			var newTimerSliderDiv = document.createElement("div");
 			newTimerSliderDiv.id = key;
+			newTimerSliderDiv.class = TIMER_SLIDER_DIV_CLASS;
 			containerDiv.append(newTimerSliderDiv);
 			$( ".sliderdefinitions" ).append( containerDiv );
 			$( "#" + key ).slider({
@@ -259,22 +266,14 @@
 		}
 		
 		// === TIMER DEFINITIONS ===
-		/****
-		var timerdefinitions = {};
-		timerdefinitions["tim0"] = { from: 360, to: 480 };
-		timerdefinitions["tim1"] = { from: 540, to: 920 };
-		// dynamically create timer sliders
-		Object.keys(timerdefinitions).forEach(function (key) { 
-    		addTimer(key, tim)
-		});
-		******/
-		//addTimer("tim0", 360, 480)
-		//addTimer("tim1", 540, 920)
-
+		
 		// === JSON example ===
+		// initially, add timers from NodeMCUs json response
+		document.getElementById("no-response-indicator").style.visibility = "hidden";
 		var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timers";
 		var jqxhr = $.getJSON( url, function(jsonData) {
 			$.each(jsonData, function(_timerId, val) {
+				// add timer
 				addTimer(_timerId, val.from, val.to);
 			});
 		})
@@ -282,6 +281,7 @@
 		    	console.log( "jqxhr second success" );
 		  	})
 			.fail(function(e) {
+				document.getElementById("no-response-indicator").style.visibility = "visible";
 		    	console.log( "jqxhr error: " + e.status );
 		  	})
 		  	.always(function() {
@@ -294,6 +294,7 @@
 		$( "#button_addTimer" ).click(function( event ) {
 			console.log("[BUTTON] addTimer" );
 			addTimer("tim_" + Date.now(), 30, 900)
+			notifyUpdate()
 		})
 
 		$( "#mybutton" ).click(function( event ) {
