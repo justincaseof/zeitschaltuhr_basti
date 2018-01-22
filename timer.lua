@@ -34,8 +34,10 @@ end
 
 local FIRST_RUN = true
 
+
 -- initially (and permanently) switch on blue LED on ESP8266 board
-gpio.write(blue_led_pin, gpio.LOW)
+--gpio.write(blue_led_pin, gpio.LOW) -- LED STATES ARE NOW DONE VIA TIMER2
+
 -- initially switch off the relais
 switchOff()
 
@@ -110,17 +112,20 @@ function syncSNTP()
     }
     if ( not sntpTimeSyncRunning and not sntpTimeSyncDone ) then
         sntpTimeSyncRunning = true
+        LED_blue_STATE = 4
         sntp.sync(
             sntpServers, 
             function(sec, usec, server, info)
                 print('SNTP sync done: ', sec, usec, server)
                 sntpTimeSyncRunning = false
                 sntpTimeSyncDone = true
+                LED_blue_STATE = 1  -- ON
             end,
             function()
                 print('SNTP sync failed!')
                 sntpTimeSyncRunning = false
                 sntpTimeSyncDone = false
+                LED_blue_STATE = 3  -- FAST_FLASH
             end
         )
     end
@@ -143,10 +148,57 @@ end
 relais_state = 2
 -- initial delay (FIXME TODO: persist in flash)
 seconds_until_switchoff_counter = 1800
+-- 0=OFF, 1=ON, 2=SLOW FLASH, 3=FAST FLASH, 4=SUPER FAST FLASH
+LED_blue_STATE = 2
 
 ----------------
 -- Timers     --
 ----------------
+local timer2_id = 1
+local timer2_timeout_millis = 250
+local LED_ticks = 0
+local LED_blue_STATE_do_toggle = false
+local LED_blue_STATE_current = gpio.LOW
+tmr.register(timer2_id, timer2_timeout_millis, tmr.ALARM_SEMI, function()
+    LED_blue_STATE_do_toggle = false
+    if      LED_blue_STATE == 0 then            -- STATE 0:
+        gpio.write(blue_led_pin, gpio.HIGH)     --> OFF
+    elseif  LED_blue_STATE == 1 then            -- STATE 1:
+        gpio.write(blue_led_pin, gpio.LOW)      --> ON
+    elseif  LED_blue_STATE == 2 then            -- STATE 2:
+        if (LED_ticks % 4) == 0 then            --> SLOW FLASH
+            LED_blue_STATE_do_toggle = true
+        end
+    elseif  LED_blue_STATE == 3 then            -- STATE 3:
+        if (LED_ticks % 2) == 0 then            --> FAST FLASH
+            LED_blue_STATE_do_toggle = true
+        end
+    elseif  LED_blue_STATE == 4 then            -- STATE 4:
+        LED_blue_STATE_do_toggle = true         --> SUPER FAST FLASH
+    else
+        print("ILLEGAL LED STATE! RESETTING TO '3'")
+        LED_blue_STATE = 3
+    end
+
+    -- TOOOOGGGGLLLLEEE --
+    if LED_blue_STATE_do_toggle == true then
+        if gpio.read(blue_led_pin) == gpio.HIGH then
+            gpio.write(blue_led_pin, gpio.LOW)
+        else
+            gpio.write(blue_led_pin, gpio.HIGH)
+        end
+    end
+
+    -- INC and RESET
+    LED_ticks = LED_ticks +1
+    if (LED_ticks > 256) then
+        LED_ticks = 0
+    end
+    tmr.start(timer2_id)    -- restart timer for creating a proper loop
+end)
+tmr.start(timer2_id)
+print(" timer2 started (LED state indication)");
+
 
 -- DO NOT CHANGE THIS TIMER DEFINITION!
 local timer1_id = 0
