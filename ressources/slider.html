@@ -166,8 +166,8 @@
 			// update HTML input fields
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM )			.val( from );
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO )				.val( to );
-			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM_DAYTIME )	.val( to_hours + ":" + to_minutes );
-			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO_DAYTIME )		.val( from_hours + ":" + from_minutes );
+			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM_DAYTIME )	.val( from_hours + ":" + from_minutes );
+			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO_DAYTIME )		.val( to_hours + ":" + to_minutes );
 		}
 
 		// Create or update timers: HTTP POST /timers
@@ -214,6 +214,7 @@
 			newTimerSliderDiv.class = TIMER_SLIDER_DIV_CLASS;
 			containerDiv.append(newTimerSliderDiv);
 			$( ".sliderdefinitions" ).append( containerDiv );
+			// SLIDER DEFINITION AND SETUP
 			$( "#" + key ).slider({
 				// === DATA ===
 				range: 		true,
