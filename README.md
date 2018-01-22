@@ -1,0 +1,1 @@
+#Zeitschaltuhr BastiStand: 2018-01-14## NodeMCU LUA Firmware required:`NodeMCU custom build by frightanic.com	branch: master	commit: 5073c199c01d4d7bbbcd0ae1f761ecc4687f7217	SSL: false	modules: bit,cron,file,gpio,i2c,mdns,mqtt,net,node,rtctime,sjson,sntp,tmr,uart,wifi build 	built on: 2018-01-14 13:58 powered by Lua 5.1.4 on SDK 2.1.0(116b762)`

@@ -52,7 +52,11 @@
 <body>
 
 <!-- Slider -->
-<h2 class="demoHeaders">Sliders <input type="button" value="(reload)" onClick="window.location.reload()"></h2>
+<div>
+	<h2 class="demoHeaders">Sliders <input type="button" value="(reload)" onClick="window.location.reload()"></h2>
+	Server Time: <input id="servertime" value="xx:yy"></input>
+
+</div>
 <div id="no-response-indicator" visible="false">-- cannot load timers --</div>
 <div class="sliderdefinitions"></div>
 <button id="button_addTimer">( + )</button>
@@ -165,11 +169,22 @@
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_FROM_DAYTIME )	.val( to_hours + ":" + to_minutes );
 			$( "#" + PREFIX_DYNAMICINPUTS + timerId + POSTFIX_TO_DAYTIME )		.val( from_hours + ":" + from_minutes );
 		}
+
 		// Create or update timers: HTTP POST /timers
 		function notifyUpdate() { //(timerId, from, to) {
 			console.log( "Committing update on Timers" )
-			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timer";
-			$.post( url, timerdefinitions )
+			var _url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timers";
+			var _data = JSON.stringify(timerdefinitions)
+			console.log(_data)
+			//$.post( url, data, 'json', 'json' )
+			$.ajax({
+				method: "POST",
+				url: _url,
+				crossDomain: true,
+				data: _data,
+				contentType: "application/json",
+    			dataType: 'json'
+			})
 				.done(function( data ) {
 					console.log("[notifyUpdate]  POST successful!");
 			  	})
@@ -224,9 +239,7 @@
 																		// Keep track of our activities to avoid double invocation
 												  						$( "#pending_indication" ).val("DONE");			// FIXME: remove
 																		// ACTUAL NOTIFICATION VIA POST
-																		notifyUpdate(eventSource, 						//  == sliderId
-																					timerdefinitions[eventSource].from, // get that from our hashmap
-																					timerdefinitions[eventSource].to);	// get that from our hashmap
+																		notifyUpdate();
 																		UPDATE_TIMER_COMMITT_PENDING = false;
 																		clearInterval(timeout_timer);					// delete timer after first execution
 																	}, 
@@ -258,8 +271,11 @@
 										);
 			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).text("( X )");
 			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).click(function( event ) {
-				console.log("[BUTTON] CLOSE" );
+				var eventSource = event.target.id;
+				console.log("[BUTTON] CLOSE. key = " + key + ", eventSource = " + eventSource);
+				delete timerdefinitions[key];
 				$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_SLIDERCONTAINERDIV ).remove();
+				notifyUpdate();
 			});
 			// init
 			updateTime(key, _val_from, _val_to);
@@ -267,26 +283,56 @@
 		
 		// === TIMER DEFINITIONS ===
 		
+		/**
+		 * Load timers from REST ressource. Show error DIV when not successful.
+		 */
+		document.getElementById("no-response-indicator").style.visibility = "visible";	// initially invisible
+		function loadTimers() {
+			document.getElementById("no-response-indicator").style.visibility = "hidden";
+			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timers";
+			var jqxhr = $.getJSON( url, function(jsonData) {
+				$.each(jsonData, function(_timerId, val) {
+					// add timer
+					addTimer(_timerId, val.from, val.to);
+				});
+				console.log( "timer init successful." );
+			})
+				.done(function() {
+			    	// load server time only in case of success
+			    	loadServerTime();
+			  	})
+				.fail(function(e) {
+					document.getElementById("no-response-indicator").style.visibility = "visible";
+			    	console.log( "timer init error: " + e.status );
+			  	})
+			  	.always(function() {
+			    	//console.log( "jqxhr complete" );
+			  	});
+		}
+		function loadServerTime() {
+			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "servertime";
+			var jqxhr = $.getJSON( url, function(jsonData) {
+				var servertimeseconds = jsonData["server_time"]
+				var _date = new Date( servertimeseconds * 1000 )
+				var formatted = _date.getDate() + "." + (_date.getMonth()+1) + "." + _date.getFullYear() + " " + _date.getHours() + ":" + _date.getMinutes();
+				$( "#servertime" ).val(formatted);
+				console.log( "servertime init successful." );
+			})
+				.done(function() {
+			    	//console.log( "jqxhr second success" );
+			  	})
+				.fail(function(e) {
+					$( "#servertime" ).val("xx:xx");
+			    	console.log( "servertime init error: " + e.status );
+			  	})
+			  	.always(function() {
+			    	//console.log( "jqxhr complete" );
+			  	});
+		}
+
 		// === JSON example ===
 		// initially, add timers from NodeMCUs json response
-		document.getElementById("no-response-indicator").style.visibility = "hidden";
-		var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "timers";
-		var jqxhr = $.getJSON( url, function(jsonData) {
-			$.each(jsonData, function(_timerId, val) {
-				// add timer
-				addTimer(_timerId, val.from, val.to);
-			});
-		})
-			.done(function() {
-		    	console.log( "jqxhr second success" );
-		  	})
-			.fail(function(e) {
-				document.getElementById("no-response-indicator").style.visibility = "visible";
-		    	console.log( "jqxhr error: " + e.status );
-		  	})
-		  	.always(function() {
-		    	console.log( "jqxhr complete" );
-		  	});
+		loadTimers();
 	  	// === /JSON example ===
 
 
@@ -297,6 +343,7 @@
 			notifyUpdate()
 		})
 
+		/*
 		$( "#mybutton" ).click(function( event ) {
 			console.log("[BUTTON] mybutton" );
 			var jsonPOSTcontent = "{";
@@ -317,6 +364,7 @@
 
 			event.preventDefault();
 		});
+		*/
 		// === /BUTTONS ===
 		
 	</script>

@@ -70,15 +70,28 @@ TIMERDEFINITIONS = { }
 TIMERDEFINITIONS['tim0'] = { 
     ["from"]            = 360, 
     ["to"]              = 480, 
-    ["last_check"]      = 0,    -- remember unix timestamp of last check
-    ["current_state"]   = 0     -- keep track of the current state
 }
 TIMERDEFINITIONS['tim1'] = { 
     ["from"]            = 1100, 
     ["to"]              = 1260, 
-    ["last_check"]      = 0,    -- remember unix timestamp of last check
-    ["current_state"]   = 0     -- keep track of the current state
 }
+
+local function addOrUpdateTimer(_timerId, _from, _to)
+    print("adding Timer -->")
+    print("  _timerId: " .. _timerId)
+    print("  val.from: " .. _from)
+    print("  val.to  : " .. _to)
+
+    -- clear old values
+    for k,v in pairs(TIMERDEFINITIONS) do
+        TIMERDEFINITIONS[k] = nil
+    end
+
+    TIMERDEFINITIONS[_timerId] = {
+        ["from"]            = _from, 
+        ["to"]              = _to
+    }
+end
 
 ----------
 -- SNTP --
@@ -141,7 +154,7 @@ local timer1_timeout_millis = 1000
 tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     -- SNTP TIME --
     tm = rtctime.epoch2cal(rtctime.get())
-    unix_time_millis = string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
+    timeAsString = string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
     minutesofday = tm["hour"] * 60 + tm["min"]
     syncSNTP()  -- ask for sync
 
@@ -149,7 +162,7 @@ tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     print("tick")
     --print("  -> relais_state: " .. (relais_state or "?"))
     print("  -> IP: " .. (wifi.sta.getip() or "?"))
-    print("  -> time: " .. unix_time_millis)
+    print("  -> time: " .. timeAsString)
     print("  -> minutesofday: " .. minutesofday)
     
     -- 1) identify and calculate railais_state --
@@ -362,33 +375,45 @@ srv:listen(80, function(conn)
                 end)
         end
 
+        local function sendJSON(_json)
+            sck:send("HTTP/1.1 200 OK\r\n" ..
+                    "Server: NodeMCU on ESP8266\r\n"..
+                    "Access-Control-Allow-Origin: *\r\n" ..
+                    "Connection: close\r\n" .. 
+                    "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
+                    _json,
+                    function()
+                        SEMAPHORE_TAKEN = false
+                        sck:close()
+                        sck = nil
+                        collectgarbage()
+                    end)
+        end
+
         local function respondTimers()
             local first = true
             local json = "{"
-            for _timerId in pairs(TIMERDEFINITIONS) do
+            for _timerId, val in pairs(TIMERDEFINITIONS) do
                 if (first) then
                     first = false
                 else
                     json = json .. ","
                 end
                 json = json .. "\"" .. _timerId .. "\":" .. "{" ..
-                        "\"from\":" .. TIMERDEFINITIONS[_timerId]["from"] .. "," ..
-                        "\"to\":" .. TIMERDEFINITIONS[_timerId].to ..
+                        "\"from\":" .. val["from"] .. "," ..
+                        "\"to\":" .. val.to ..
                     "}"
             end
             json = json .. "}"
-            sck:send("HTTP/1.1 200 OK\r\n" ..
-                "Server: NodeMCU on ESP8266\r\n"..
-                "Access-Control-Allow-Origin: *\r\n" ..
-                "Connection: close\r\n" .. 
-                "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
-                json,
-                function()
-                    SEMAPHORE_TAKEN = false
-                    sck:close()
-                    sck = nil
-                    collectgarbage()
-                end)
+            sendJSON(json)
+        end
+
+        local function respondServerTime()
+            sec, usec, clkrate = rtctime.get()
+            -- note: usec does only contain actual microseconds after "sec", so its not absolute!
+            local first = true
+            local json = "{\"server_time\":" .. sec .. "}"
+            sendJSON(json)
         end
 
         local function respondOK()
@@ -419,22 +444,39 @@ srv:listen(80, function(conn)
                 respondStatus(sck)
             elseif string.match(path, "timer") then
                 respondTimers()
+            elseif string.match(path, "servertime") then
+                respondServerTime()
             else
                 --print(" - respondMain()") 
                 respondRoot(sck, path)
             end
         end
 
-        
+        local function safelyUpdateTimersFromJSON(_json)
+            print(" ---1 ")
+            local result = sjson.decode(_json)
+            print(" ---2 ")
+            for _timerId, val in pairs(result) do 
+                print(" --->>> ")
+                addOrUpdateTimer(_timerId, val["from"], val["to"])
+            end
+        end
 
         local function handlePOST(payload, path)
             print("### handlePOST() ###")
-            respondTimers()
+            
             if string.match(path, "timers") then
                 -- POST @ path "/timers" --> application/json
+                local _json = string.match(payload, "{.*}")      -- extract JSON from payload
                 print("TIMEEEEEERRRRRRRRRRRRRRRRRRRRRRRRSSSSSSSSSSSSSSSSSSSSSSSSSS")
-                -- TODO FIXME WHAT NOW? aaah! parse the input !!
+                print("------------")
+                print(_json)
+                print("------------")
+                safelyUpdateTimersFromJSON(_json)
             end
+
+            respondTimers()
+
         end
         -- === FUNCTIONS - END ===
     
