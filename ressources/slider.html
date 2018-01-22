@@ -52,7 +52,11 @@
 <body>
 
 <!-- Slider -->
-<h2 class="demoHeaders">Sliders <input type="button" value="(reload)" onClick="window.location.reload()"></h2>
+<div>
+	<h2 class="demoHeaders">Sliders <input type="button" value="(reload)" onClick="window.location.reload()"></h2>
+	Server Time: <input id="serverTimer" value="xx:yy"></input>
+
+</div>
 <div id="no-response-indicator" visible="false">-- cannot load timers --</div>
 <div class="sliderdefinitions"></div>
 <button id="button_addTimer">( + )</button>
@@ -267,9 +271,9 @@
 										);
 			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).text("( X )");
 			$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_BUTTON_CLOSE ).click(function( event ) {
-				console.log("[BUTTON] CLOSE" );
 				var eventSource = event.target.id;
-				delete timerdefinitions[ eventSource ];
+				console.log("[BUTTON] CLOSE. key = " + key + ", eventSource = " + eventSource);
+				delete timerdefinitions[key];
 				$( "#" +  PREFIX_DYNAMICINPUTS + key + POSTFIX_SLIDERCONTAINERDIV ).remove();
 				notifyUpdate();
 			});
