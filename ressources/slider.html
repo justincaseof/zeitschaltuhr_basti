@@ -197,7 +197,7 @@
 		// == ADD TIMER ==
 		function addTimer(timerIdArg, _val_from, _val_to) {
 			var key = timerIdArg
-    		console.log("adding timer: '" + key);
+    		console.log("adding timer: '" + timerIdArg);
     		// -- add to lacal map --
     		timerdefinitions[timerIdArg] = { from: _val_from, to: _val_to };
 
@@ -315,7 +315,20 @@
 			var jqxhr = $.getJSON( url, function(jsonData) {
 				var servertimeseconds = jsonData["server_time"]
 				var _date = new Date( servertimeseconds * 1000 )
-				var formatted = _date.getDate() + "." + (_date.getMonth()+1) + "." + _date.getFullYear() + " " + _date.getHours() + ":" + _date.getMinutes();
+				
+				// where's STRING.FORMAT() if you need it the most???
+				var day = _date.getDate();
+				if (day < 10) { day = "0" + day }
+				var mon = _date.getMonth() + 1;
+				if (mon < 10) { mon = "0" + mon }
+				var yr = _date.getFullYear();
+				if (yr < 10) { yr = "0" + yr }
+				var hh = _date.getHours()
+				if (hh < 10) { hh = "0" + hh }
+				var mm = _date.getMinutes()
+				if (mm < 10) { mm = "0" + mm }
+				var formatted = day + "." + mon + "." + yr + " " + hh + ":" + mm ;
+
 				$( "#servertime" ).val(formatted);
 				console.log( "servertime init successful." );
 			})
