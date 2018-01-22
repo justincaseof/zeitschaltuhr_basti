@@ -154,7 +154,7 @@ local timer1_timeout_millis = 1000
 tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     -- SNTP TIME --
     tm = rtctime.epoch2cal(rtctime.get())
-    unix_time_millis = string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
+    timeAsString = string.format("%04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"])
     minutesofday = tm["hour"] * 60 + tm["min"]
     syncSNTP()  -- ask for sync
 
@@ -162,7 +162,7 @@ tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     print("tick")
     --print("  -> relais_state: " .. (relais_state or "?"))
     print("  -> IP: " .. (wifi.sta.getip() or "?"))
-    print("  -> time: " .. unix_time_millis)
+    print("  -> time: " .. timeAsString)
     print("  -> minutesofday: " .. minutesofday)
     
     -- 1) identify and calculate railais_state --
@@ -375,6 +375,21 @@ srv:listen(80, function(conn)
                 end)
         end
 
+        local function sendJSON(_json)
+            sck:send("HTTP/1.1 200 OK\r\n" ..
+                    "Server: NodeMCU on ESP8266\r\n"..
+                    "Access-Control-Allow-Origin: *\r\n" ..
+                    "Connection: close\r\n" .. 
+                    "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
+                    _json,
+                    function()
+                        SEMAPHORE_TAKEN = false
+                        sck:close()
+                        sck = nil
+                        collectgarbage()
+                    end)
+        end
+
         local function respondTimers()
             local first = true
             local json = "{"
@@ -390,18 +405,15 @@ srv:listen(80, function(conn)
                     "}"
             end
             json = json .. "}"
-            sck:send("HTTP/1.1 200 OK\r\n" ..
-                "Server: NodeMCU on ESP8266\r\n"..
-                "Access-Control-Allow-Origin: *\r\n" ..
-                "Connection: close\r\n" .. 
-                "Content-Type: application/json; charset=UTF-8\r\n\r\n" ..
-                json,
-                function()
-                    SEMAPHORE_TAKEN = false
-                    sck:close()
-                    sck = nil
-                    collectgarbage()
-                end)
+            sendJSON(json)
+        end
+
+        local function respondServerTime()
+            sec, usec, clkrate = rtctime.get()
+            -- note: usec does only contain actual microseconds after "sec", so its not absolute!
+            local first = true
+            local json = "{\"server_time\":" .. sec .. "}"
+            sendJSON(json)
         end
 
         local function respondOK()
@@ -432,6 +444,8 @@ srv:listen(80, function(conn)
                 respondStatus(sck)
             elseif string.match(path, "timer") then
                 respondTimers()
+            elseif string.match(path, "servertime") then
+                respondServerTime()
             else
                 --print(" - respondMain()") 
                 respondRoot(sck, path)

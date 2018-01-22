@@ -54,7 +54,7 @@
 <!-- Slider -->
 <div>
 	<h2 class="demoHeaders">Sliders <input type="button" value="(reload)" onClick="window.location.reload()"></h2>
-	Server Time: <input id="serverTimer" value="xx:yy"></input>
+	Server Time: <input id="servertime" value="xx:yy"></input>
 
 </div>
 <div id="no-response-indicator" visible="false">-- cannot load timers --</div>
@@ -298,11 +298,32 @@
 				console.log( "timer init successful." );
 			})
 				.done(function() {
-			    	//console.log( "jqxhr second success" );
+			    	// load server time only in case of success
+			    	loadServerTime();
 			  	})
 				.fail(function(e) {
 					document.getElementById("no-response-indicator").style.visibility = "visible";
 			    	console.log( "timer init error: " + e.status );
+			  	})
+			  	.always(function() {
+			    	//console.log( "jqxhr complete" );
+			  	});
+		}
+		function loadServerTime() {
+			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "servertime";
+			var jqxhr = $.getJSON( url, function(jsonData) {
+				var servertimeseconds = jsonData["server_time"]
+				var _date = new Date( servertimeseconds * 1000 )
+				var formatted = _date.getDate() + "." + (_date.getMonth()+1) + "." + _date.getFullYear() + " " + _date.getHours() + ":" + _date.getMinutes();
+				$( "#servertime" ).val(formatted);
+				console.log( "servertime init successful." );
+			})
+				.done(function() {
+			    	//console.log( "jqxhr second success" );
+			  	})
+				.fail(function(e) {
+					$( "#servertime" ).val("xx:xx");
+			    	console.log( "servertime init error: " + e.status );
 			  	})
 			  	.always(function() {
 			    	//console.log( "jqxhr complete" );
