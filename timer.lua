@@ -84,10 +84,7 @@ local function addOrUpdateTimer(_timerId, _from, _to)
     print("  val.from: " .. _from)
     print("  val.to  : " .. _to)
 
-    -- clear old values
-    for k,v in pairs(TIMERDEFINITIONS) do
-        TIMERDEFINITIONS[k] = nil
-    end
+    
 
     TIMERDEFINITIONS[_timerId] = {
         ["from"]            = _from, 
@@ -508,6 +505,11 @@ srv:listen(80, function(conn)
             print(" ---1 ")
             local result = sjson.decode(_json)
             print(" ---2 ")
+            -- clear old values
+            for k,v in pairs(TIMERDEFINITIONS) do
+                TIMERDEFINITIONS[k] = nil
+            end
+            -- insert new ones
             for _timerId, val in pairs(result) do 
                 print(" --->>> ")
                 addOrUpdateTimer(_timerId, val["from"], val["to"])
@@ -520,10 +522,8 @@ srv:listen(80, function(conn)
             if string.match(path, "timers") then
                 -- POST @ path "/timers" --> application/json
                 local _json = string.match(payload, "{.*}")      -- extract JSON from payload
-                print("TIMEEEEEERRRRRRRRRRRRRRRRRRRRRRRRSSSSSSSSSSSSSSSSSSSSSSSSSS")
-                print("------------")
+                print(" POST /timers:")
                 print(_json)
-                print("------------")
                 safelyUpdateTimersFromJSON(_json)
             end
 
