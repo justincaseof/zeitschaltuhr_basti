@@ -300,7 +300,7 @@
 			})
 				.done(function() {
 			    	// load server time only in case of success
-			    	loadServerTime();
+			    	loadServerTimeAndRepeatPriodically();
 			  	})
 				.fail(function(e) {
 					document.getElementById("no-response-indicator").style.visibility = "visible";
@@ -310,7 +310,7 @@
 			    	//console.log( "jqxhr complete" );
 			  	});
 		}
-		function loadServerTime() {
+		function loadServerTimeAndRepeatPriodically() {
 			var url = URL_PREFIX_INCLUDING_ENDING_SLASH + "servertime";
 			var jqxhr = $.getJSON( url, function(jsonData) {
 				var servertimeseconds = jsonData["server_time"]
@@ -327,7 +327,9 @@
 				if (hh < 10) { hh = "0" + hh }
 				var mm = _date.getMinutes()
 				if (mm < 10) { mm = "0" + mm }
-				var formatted = day + "." + mon + "." + yr + " " + hh + ":" + mm ;
+				var ss = _date.getSeconds()
+				if (ss < 10) { ss = "0" + ss }
+				var formatted = day + "." + mon + "." + yr + " " + hh + ":" + mm + ":" + ss;
 
 				$( "#servertime" ).val(formatted);
 				console.log( "servertime init successful." );
@@ -340,15 +342,16 @@
 			    	console.log( "servertime init error: " + e.status );
 			  	})
 			  	.always(function() {
-			    	//console.log( "jqxhr complete" );
+			    	// ===========================
+			    	// == EXECUTE PERIODICALLY! ==
+					setTimeout(loadServerTimeAndRepeatPriodically, 5000);
 			  	});
 		}
 
-		// === JSON example ===
+		// === JSON ===
 		// initially, add timers from NodeMCUs json response
 		loadTimers();
-	  	// === /JSON example ===
-
+		// === /JSON ===
 
 		// === BUTTONS ===
 		$( "#button_addTimer" ).click(function( event ) {
