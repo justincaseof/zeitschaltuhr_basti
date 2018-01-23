@@ -12,10 +12,8 @@ setupwifi_pin           = 1     --> = D1 --> the "FLASH" button on NodeMCU dev k
 button_and_red_led_pin  = 0     --> = D0 
                                     -- = the "USER" button on NodeMCU dev kit board. ... NOTE: should already have been used as input in 'init.lua' 
                                     -- = the red LED on NodeMCU dev kit board. ... NOTE: should already have been defined in 'init.lua' 
-blue_led_pin            = 4     --> = D4
 relais_out_pin          = 2     --> = D2
 gpio.mode(button_and_red_led_pin,   gpio.OUTPUT)
-gpio.mode(blue_led_pin,             gpio.OUTPUT)
 gpio.mode(relais_out_pin,           gpio.OUTPUT)
 
 function switchOn()
@@ -36,7 +34,6 @@ local FIRST_RUN = true
 
 
 -- initially (and permanently) switch on blue LED on ESP8266 board
---gpio.write(blue_led_pin, gpio.LOW) -- LED STATES ARE NOW DONE VIA TIMER2
 
 -- initially switch off the relais
 switchOff()
@@ -146,55 +143,11 @@ relais_state = 2
 -- initial delay (FIXME TODO: persist in flash)
 seconds_until_switchoff_counter = 1800
 -- 0=OFF, 1=ON, 2=SLOW FLASH, 3=FAST FLASH, 4=SUPER FAST FLASH
-LED_blue_STATE = 2
+LED_blue_STATE = 2      -- see "init.lua". HAS TO BE USED BY LED STATE TIMER THERE!
 
 ----------------
 -- Timers     --
 ----------------
-local timer2_id = 1
-local timer2_timeout_millis = 250
-local LED_ticks = 0
-local LED_blue_STATE_do_toggle = false
-local LED_blue_STATE_current = gpio.LOW
-tmr.register(timer2_id, timer2_timeout_millis, tmr.ALARM_SEMI, function()
-    LED_blue_STATE_do_toggle = false
-    if      LED_blue_STATE == 0 then            -- STATE 0:
-        gpio.write(blue_led_pin, gpio.HIGH)     --> OFF
-    elseif  LED_blue_STATE == 1 then            -- STATE 1:
-        gpio.write(blue_led_pin, gpio.LOW)      --> ON
-    elseif  LED_blue_STATE == 2 then            -- STATE 2:
-        if (LED_ticks % 4) == 0 then            --> SLOW FLASH
-            LED_blue_STATE_do_toggle = true
-        end
-    elseif  LED_blue_STATE == 3 then            -- STATE 3:
-        if (LED_ticks % 2) == 0 then            --> FAST FLASH
-            LED_blue_STATE_do_toggle = true
-        end
-    elseif  LED_blue_STATE == 4 then            -- STATE 4:
-        LED_blue_STATE_do_toggle = true         --> SUPER FAST FLASH
-    else
-        print("ILLEGAL LED STATE! RESETTING TO '3'")
-        LED_blue_STATE = 3
-    end
-
-    -- TOOOOGGGGLLLLEEE --
-    if LED_blue_STATE_do_toggle == true then
-        if gpio.read(blue_led_pin) == gpio.HIGH then
-            gpio.write(blue_led_pin, gpio.LOW)
-        else
-            gpio.write(blue_led_pin, gpio.HIGH)
-        end
-    end
-
-    -- INC and RESET
-    LED_ticks = LED_ticks +1
-    if (LED_ticks > 256) then
-        LED_ticks = 0
-    end
-    tmr.start(timer2_id)    -- restart timer for creating a proper loop
-end)
-tmr.start(timer2_id)
-print(" timer2 started (LED state indication)");
 
 
 -- DO NOT CHANGE THIS TIMER DEFINITION!
