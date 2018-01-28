@@ -23,6 +23,7 @@ local setup_wifi = gpio.read(setupwifi_pin)
 print(" -> startup_interruption: "..((startup_interruption==0 and "yes") or "no"))
 print(" -> setup_wifi: "..((setup_wifi==0 and "yes") or "no"))
 
+-- FUNCTION DEFINITIONS --
 function normalstart() 
 	print("normalstart()")
 	luafilename = FILENAME_APPLICATION
@@ -49,6 +50,8 @@ function wifisetup()
     )
 end
 
+-- BLUE LED STATE INDICATION "THREAD" --
+-- FIXME: do this with PWM
 local timer2_id = 1
 local timer2_timeout_millis = 250
 local LED_ticks = 0
@@ -97,12 +100,13 @@ local function startLEDStateTimer()
     print(" timer2 started (LED state indication)")
 end
 
+-- ACTUAL "MAIN" CODE --
 -- CHOOSE 'MODE'
 if startup_interruption == 0 then
     print(" -> startup_interruption")
 elseif setup_wifi == 0 then
 	startLEDStateTimer()
-    LED_blue_STATE = 2 -- slow flashing
+    LED_blue_STATE = 3 -- fast flashing
     wifisetup()
 else
     startLEDStateTimer()

@@ -1,14 +1,6 @@
 -- this is a comment
 print("Autosetup")
 
-----------------------------------
--- Blink fast to indicate mode  --
-----------------------------------
-led_pin = 3
-gpio.mode(led_pin, gpio.OUTPUT)
-pwm.setup(led_pin, 1, 800)
-pwm.start(led_pin)
-
 ----------------
 -- Init Wifi  --
 ----------------
@@ -19,7 +11,7 @@ wifi.setmode(wifi.SOFTAP)
 wifi.setphymode(wifi.PHYMODE_G)
 -- AP config
 ap_cfg = {}
-ap_cfg.ssid="NodeMCU"
+ap_cfg.ssid="Zeitschaltuhr"
 ap_cfg.pwd="lkwpeter"
 ap_cfg.auth=wifi.OPEN
 ap_cfg.max=1
