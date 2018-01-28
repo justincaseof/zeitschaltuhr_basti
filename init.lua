@@ -52,7 +52,7 @@ end
 
 -- BLUE LED STATE INDICATION "THREAD" --
 -- FIXME: do this with PWM
-local timer2_id = 1
+local timer2_id = 2
 local timer2_timeout_millis = 250
 local LED_ticks = 0
 local LED_blue_STATE_do_toggle = false
@@ -77,6 +77,8 @@ tmr.register(timer2_id, timer2_timeout_millis, tmr.ALARM_SEMI, function()
         print("ILLEGAL LED STATE! RESETTING TO '3'")
         LED_blue_STATE = 3
     end
+
+    --print("tid=3")
 
     -- TOOOOGGGGLLLLEEE --
     if LED_blue_STATE_do_toggle == true then
@@ -106,7 +108,7 @@ if startup_interruption == 0 then
     print(" -> startup_interruption")
 elseif setup_wifi == 0 then
 	startLEDStateTimer()
-    LED_blue_STATE = 3 -- fast flashing
+    LED_blue_STATE = 2 -- slow flashing
     wifisetup()
 else
     startLEDStateTimer()
