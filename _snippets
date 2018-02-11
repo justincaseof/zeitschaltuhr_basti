@@ -1,0 +1,11 @@
+function writeTimerConfigFile()
+    if file.open(TIMER_CONFIG_FILE_NAME, "w+") then
+        for k, v in pairs(TIMERDEFINITIONS) do
+            local _from                 = v["from"]
+            local _to                   = v["to"]
+            file.writleln(k .. ":" .. _from .. ":" .. _to)
+            file.flush()
+        end
+        file.close()
+    end
+end

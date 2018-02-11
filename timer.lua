@@ -68,26 +68,6 @@ end
 ----------------------------------
 -- Timer/Scheduler config stuff --
 ----------------------------------
-TIMER_CONFIG_FILE_NAME = "timerconfigs.txt"
--- Line format: {identifier}:{from}:{to}
-if file.open(TIMER_CONFIG_FILE_NAME, "rw") then
-    print(" FILE!")
-    myline = file.readline()
-    while ( myline ~= nil and myline ~= "" ) do
-        print(" --> timer config line: \r\n" .. myline)
-        _line_id, _line_from, _line_to = string.match(myline, '^(.*):(\d*):(\d*)')
-        if (not isStringEmpty(_line_id)) and (not isStringEmpty(_line_from)) and (not isStringEmpty(_line_to)) then 
-            addOrUpdateTimer(_line_id, _line_from, _line_to)
-        else
-            print("  --> Illegal line!")
-        end
-        myline = file.readline()
-    end
-    file.close()
-else
-    print(" :-( no timer config file found (" .. TIMER_CONFIG_FILE_NAME ..")")
-end
-
 TIMERDEFINITIONS = { }
 ---- DEBUG: set up dummy config
 --TIMERDEFINITIONS['tim0'] = { 
@@ -106,9 +86,46 @@ local function addOrUpdateTimer(_timerId, _from, _to)
     print("  val.to  : " .. _to)
 
     TIMERDEFINITIONS[_timerId] = {
-        ["from"]            = _from, 
-        ["to"]              = _to
+        ["from"]            = tonumber(_from), 
+        ["to"]              = tonumber(_to)
     }
+end
+
+
+---### file handling ###
+TIMER_CONFIG_FILE_NAME = "timerconfigs.txt"
+-- Line format: {identifier}:{from}:{to}
+if file.open(TIMER_CONFIG_FILE_NAME, "r") then
+    print(" FILE!")
+    myline = file.readline()
+    while ( myline ~= nil and myline ~= "" ) do
+        print(" --> timer config line: \r\n" .. myline)
+        _line_id, _line_from, _line_to = string.match(myline, "^(.+):(.+):(.+)$")
+        if (not isStringEmpty(_line_id)) and (not isStringEmpty(_line_from)) and (not isStringEmpty(_line_to)) then 
+            addOrUpdateTimer(_line_id, _line_from, _line_to)
+        else
+            print("  --> Illegal line!")
+        end
+        myline = file.readline()
+    end
+    file.close()
+else
+    print(" :-( no timer config file found (" .. TIMER_CONFIG_FILE_NAME ..")")
+end
+
+-- FIXME: THIS FUNCTION WILL CAUSE MEM ERRORS!
+function writeTimerConfigFile()
+    --print("FIXME TODO")
+-- file.remove(TIMER_CONFIG_FILE_NAME)
+--if file.open(TIMER_CONFIG_FILE_NAME, "rw") then
+--    for k, v in pairs(TIMERDEFINITIONS) do
+--        local _from                 = v["from"]
+--        local _to                   = v["to"]
+--        file.write(''.. k .. ':' .. _from .. ':' .. _to .. '\r\n')
+--        file.flush()
+--    end
+--    file.close()
+--end
 end
 
 ----------
@@ -494,6 +511,7 @@ srv:listen(80, function(conn)
             for _timerId, val in pairs(result) do 
                 print(" --->>> ")
                 addOrUpdateTimer(_timerId, val["from"], val["to"])
+                writeTimerConfigFile()
             end
         end
 
