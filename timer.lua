@@ -13,8 +13,10 @@ button_and_red_led_pin  = 0     --> = D0
                                     -- = the "USER" button on NodeMCU dev kit board. ... NOTE: should already have been used as input in 'init.lua' 
                                     -- = the red LED on NodeMCU dev kit board. ... NOTE: should already have been defined in 'init.lua' 
 relais_out_pin          = 2     --> = D2
+CONTINUOUS_MODE_IN_PIN  = 3     --> = D3
 gpio.mode(button_and_red_led_pin,   gpio.OUTPUT)
 gpio.mode(relais_out_pin,           gpio.OUTPUT)
+gpio.mode(CONTINUOUS_MODE_IN_PIN,   gpio.INPUT, gpio.PULLUP)
 
 function switchOn()
     gpio.write(button_and_red_led_pin,  gpio.LOW)
@@ -32,6 +34,12 @@ end
 
 local FIRST_RUN = true
 
+function isContinuousModeActive()
+    if CONTINUOUS_MODE_IN_PIN then
+        return gpio.read(CONTINUOUS_MODE_IN_PIN) == 0
+    end
+    return false
+end
 
 -- initially (and permanently) switch on blue LED on ESP8266 board
 
@@ -45,7 +53,7 @@ switchOff()
 -- var 'local setup_wifi = gpio.read(setupwifi_pin)' has been previously defined by init.lua script
 function isWifiSetupActive()
     if setupwifi_pin then
-        return gpio.read(setupwifi_pin)==0
+        return gpio.read(setupwifi_pin) = 0
     end
     return false
 end
@@ -53,16 +61,19 @@ end
 ----------------------------------
 -- Timer/Scheduler config stuff --
 ----------------------------------
+TIMER_CONFIG_FILE_NAME = "timerconfigs.txt"
 -- Line format: {identifier}:{from}:{to}
-if file.open("timerconfigs.txt", "rw") then
+if file.open(TIMER_CONFIG_FILE_NAME, "rw") then
     print(" FILE!")
-    myline = "0:1:2"
     myline = file.readline()
     while ( myline ~= nil and myline ~= "" ) do
         print(" --> " .. myline)
+        -- FIXME: parse and add timer here
         myline = file.readline()
     end
     file.close()
+else
+    print(" :-( no timer config file found (" .. TIMER_CONFIG_FILE_NAME ..")")
 end
 -- DEBUG: set up dummy config
 TIMERDEFINITIONS = { }
@@ -80,8 +91,6 @@ local function addOrUpdateTimer(_timerId, _from, _to)
     print("  _timerId: " .. _timerId)
     print("  val.from: " .. _from)
     print("  val.to  : " .. _to)
-
-    
 
     TIMERDEFINITIONS[_timerId] = {
         ["from"]            = _from, 
@@ -166,22 +175,28 @@ tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     print("  -> IP: " .. (wifi.sta.getip() or "?"))
     print("  -> time: " .. timeAsString)
     print("  -> minutesofday: " .. minutesofday)
-    
-    -- 1) identify and calculate railais_state --
-    local _switchOnRequested    = false
-    local _switchOffRequested   = false
-    local _in_range             = false
-    for k, v in pairs(TIMERDEFINITIONS) do
-        local previous_state        = relais_state
-        local _from                 = v["from"]
-        local _to                   = v["to"]
-        _in_range = (_in_range) or (minutesofday >= _from and minutesofday <= _to)
-        print("  -> Processing timer '" .. k .. "': from=" .. _from .. ", to=" .. _to)
-        print("  -> _in_range: " .. ((_in_range and "true") or "false"))
+
+    local _switch_on = false
+    if isContinuousModeActive() then
+        -- ######### CONTINUOUS MODE #########
+        print("  -> We're in CONTINUOUS mode. Relais is on.")
+        _switch_on = true
+    else
+        -- ######### TIMER MODE #########
+        -- 1) identify and calculate railais_state --
+        
+        for k, v in pairs(TIMERDEFINITIONS) do
+            local previous_state        = relais_state
+            local _from                 = v["from"]
+            local _to                   = v["to"]
+            _switch_on = (_switch_on) or (minutesofday >= _from and minutesofday <= _to)
+            print("  -> Processing timer '" .. k .. "': from=" .. _from .. ", to=" .. _to)
+            print("  -> _switch_on: " .. ((_switch_on and "true") or "false"))
+        end
     end
 
     -- 3.1) switch in first run
-    if (_in_range) then
+    if (_switch_on) then
         print("  ---- ON -----")
         switchOn()
     else
