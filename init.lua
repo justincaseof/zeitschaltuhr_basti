@@ -11,14 +11,14 @@ LED_blue_STATE                  = 1 -- CAN BE USED BY OTHER SCRIPTS TO DEFINE BL
 
 
 print("Starting Bootloader...")
-button_pin                      = 0 -- = D0 --> the "USER" button on NodeMCU dev kit board, also the red LED (when used as OUTPUT)
+button_USER_pin                 = 0 -- = D0 --> the "USER" button on NodeMCU dev kit board, also the red LED (when used as OUTPUT)
 setupwifi_pin                   = 1 -- = D1 --> the "FLASH" button on NodeMCU dev kit board
 blue_led_pin                    = 4 -- = D4 --> blue LED positioned directly on ESP8266
-gpio.mode(button_pin,                   gpio.INPUT)
+gpio.mode(button_USER_pin,              gpio.INPUT)
 gpio.mode(setupwifi_pin, gpio.INPUT,    gpio.PULLUP)
 gpio.mode(blue_led_pin,                 gpio.OUTPUT)
 
-local startup_interruption = gpio.read(button_pin)
+local startup_interruption = gpio.read(button_USER_pin)
 local setup_wifi = gpio.read(setupwifi_pin)
 print(" -> startup_interruption: "..((startup_interruption==0 and "yes") or "no"))
 print(" -> setup_wifi: "..((setup_wifi==0 and "yes") or "no"))
