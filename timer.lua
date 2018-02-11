@@ -2,6 +2,13 @@
 print("Timer")
 
 --------------------------------------------
+-- HELPER
+--------------------------------------------
+local function isStringEmpty(s)
+  return s == nil or s == ''
+end
+
+
 -- GPIO Setup
 --------------------------------------------
 print("Setting Up GPIO...")
@@ -67,24 +74,30 @@ if file.open(TIMER_CONFIG_FILE_NAME, "rw") then
     print(" FILE!")
     myline = file.readline()
     while ( myline ~= nil and myline ~= "" ) do
-        print(" --> " .. myline)
-        -- FIXME: parse and add timer here
+        print(" --> timer config line: \r\n" .. myline)
+        _line_id, _line_from, _line_to = string.match(myline, '^(.*):(\d*):(\d*)')
+        if (not isStringEmpty(_line_id)) and (not isStringEmpty(_line_from)) and (not isStringEmpty(_line_to)) then 
+            addOrUpdateTimer(_line_id, _line_from, _line_to)
+        else
+            print("  --> Illegal line!")
+        end
         myline = file.readline()
     end
     file.close()
 else
     print(" :-( no timer config file found (" .. TIMER_CONFIG_FILE_NAME ..")")
 end
--- DEBUG: set up dummy config
+
 TIMERDEFINITIONS = { }
-TIMERDEFINITIONS['tim0'] = { 
-    ["from"]            = 360, 
-    ["to"]              = 480, 
-}
-TIMERDEFINITIONS['tim1'] = { 
-    ["from"]            = 1100, 
-    ["to"]              = 1260, 
-}
+---- DEBUG: set up dummy config
+--TIMERDEFINITIONS['tim0'] = { 
+--    ["from"]            = 360, 
+--    ["to"]              = 480, 
+--}
+--TIMERDEFINITIONS['tim1'] = { 
+--    ["from"]            = 1100, 
+--    ["to"]              = 1260, 
+--}
 
 local function addOrUpdateTimer(_timerId, _from, _to)
     print("adding Timer -->")
