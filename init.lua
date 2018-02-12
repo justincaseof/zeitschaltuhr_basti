@@ -4,11 +4,8 @@ local FILENAME_APPLICATION      = "timer.lua"
 local FILENAME_WIFISETUP        = "wifisetup.lua"
 
 -- VARIABLES --
--- *private*
-luafilename                     = "__dummy_lua_filename__"
 -- *public*
 LED_blue_STATE                  = 1 -- CAN BE USED BY OTHER SCRIPTS TO DEFINE BLUE LED BEHAVIOUR
-
 
 print("Starting Bootloader...")
 button_USER_pin                 = 0 -- = D0 --> the "USER" button on NodeMCU dev kit board, also the red LED (when used as OUTPUT)
@@ -25,27 +22,26 @@ print(" -> setup_wifi: "..((setup_wifi==0 and "yes") or "no"))
 
 -- FUNCTION DEFINITIONS --
 function normalstart() 
-	print("normalstart()")
-	luafilename = FILENAME_APPLICATION
-	print(" -> scheduling startup of " .. luafilename)
+	print(" -> scheduling startup of " .. FILENAME_APPLICATION)
     tmr.alarm(0, STARTUP_DELAY_MILLIS, tmr.ALARM_SINGLE, function() 
-            print(" -> starting " .. luafilename)
-            dofile(luafilename)
+            collectgarbage()
+            print(" -> starting " .. FILENAME_APPLICATION)
+            dofile(FILENAME_APPLICATION)
+            collectgarbage()
         end
     )
 end
 
 function wifisetup() 
 	print("wifisetup()")
-	luafilename = FILENAME_WIFISETUP
-	print(" -> scheduling startup of " .. luafilename)
+	print(" -> scheduling startup of " .. FILENAME_WIFISETUP)
     tmr.alarm(1, STARTUP_DELAY_MILLIS, tmr.ALARM_SINGLE, function() 
-            luafilename = "wifisetup.lua"
-            print(" -> starting " .. luafilename)
-            dofile(luafilename)
-            luafilename = "dns-liar.lua"
-            print(" -> starting " .. luafilename)
-            dofile(luafilename)
+            collectgarbage()
+            print(" -> starting " .. FILENAME_WIFISETUP)
+            dofile(FILENAME_WIFISETUP)
+            print(" -> starting " .. "dns-liar.lua")
+            dofile("dns-liar.lua")
+            collectgarbage()
         end
     )
 end
@@ -74,7 +70,6 @@ tmr.register(timer2_id, timer2_timeout_millis, tmr.ALARM_SEMI, function()
     elseif  LED_blue_STATE == 4 then            -- STATE 4:
         LED_blue_STATE_do_toggle = true         --> SUPER FAST FLASH
     else
-        print("ILLEGAL LED STATE! RESETTING TO '3'")
         LED_blue_STATE = 3
     end
 
@@ -99,7 +94,6 @@ end)
 
 local function startLEDStateTimer()
     tmr.start(timer2_id)
-    print(" timer2 started (LED state indication)")
 end
 
 -- ACTUAL "MAIN" CODE --

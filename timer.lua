@@ -1,18 +1,3 @@
--- this is a comment
-print("Timer")
-
---------------------------------------------
--- HELPER
---------------------------------------------
-local function isStringEmpty(s)
-  return s == nil or s == ''
-end
-
-
--- GPIO Setup
---------------------------------------------
-print("Setting Up GPIO...")
-
 -- Note: Pin index starts at 0 (for D0 or equivalent pin function)
 setupwifi_pin           = 1     --> = D1 --> the "FLASH" button on NodeMCU dev kit board
                                     -- NOTE: should already have been defined in 'init.lua'
@@ -25,6 +10,9 @@ gpio.mode(button_and_red_led_pin,   gpio.OUTPUT)
 gpio.mode(relais_out_pin,           gpio.OUTPUT)
 gpio.mode(CONTINUOUS_MODE_IN_PIN,   gpio.INPUT, gpio.PULLUP)
 
+--------------------------------------------
+-- HELPER
+--------------------------------------------
 function switchOn()
     gpio.write(button_and_red_led_pin,  gpio.LOW)
     gpio.write(relais_out_pin,          gpio.HIGH)
@@ -48,16 +36,10 @@ function isContinuousModeActive()
     return false
 end
 
--- initially (and permanently) switch on blue LED on ESP8266 board
+function isStringEmpty(s)
+  return s == nil or s == ''
+end
 
--- initially switch off the relais
-switchOff()
-
------------------------------
--- WIFI setup switch check --
------------------------------
--- check for active wifi setup during cycle
--- var 'local setup_wifi = gpio.read(setupwifi_pin)' has been previously defined by init.lua script
 function isWifiSetupActive()
     if setupwifi_pin then
         return gpio.read(setupwifi_pin) == 0
@@ -65,19 +47,13 @@ function isWifiSetupActive()
     return false
 end
 
+-- initially switch off the relais
+switchOff()
+
 ----------------------------------
 -- Timer/Scheduler config stuff --
 ----------------------------------
 TIMERDEFINITIONS = { }
----- DEBUG: set up dummy config
---TIMERDEFINITIONS['tim0'] = { 
---    ["from"]            = 360, 
---    ["to"]              = 480, 
---}
---TIMERDEFINITIONS['tim1'] = { 
---    ["from"]            = 1100, 
---    ["to"]              = 1260, 
---}
 
 local function addOrUpdateTimer(_timerId, _from, _to)
     print("adding Timer -->")
@@ -91,42 +67,38 @@ local function addOrUpdateTimer(_timerId, _from, _to)
     }
 end
 
-
 ---### file handling ###
 TIMER_CONFIG_FILE_NAME = "timerconfigs.txt"
 -- Line format: {identifier}:{from}:{to}
-if file.open(TIMER_CONFIG_FILE_NAME, "r") then
-    print(" FILE!")
-    myline = file.readline()
+local fd = file.open(TIMER_CONFIG_FILE_NAME, "r")
+if fd ~= nil then
+    local myline = fd:readline()
     while ( myline ~= nil and myline ~= "" ) do
-        print(" --> timer config line: \r\n" .. myline)
+    --    print(" --> timer config line: \r\n" .. myline)
         _line_id, _line_from, _line_to = string.match(myline, "^(.+):(.+):(.+)$")
         if (not isStringEmpty(_line_id)) and (not isStringEmpty(_line_from)) and (not isStringEmpty(_line_to)) then 
             addOrUpdateTimer(_line_id, _line_from, _line_to)
         else
             print("  --> Illegal line!")
         end
-        myline = file.readline()
+        myline = fd:readline()
     end
-    file.close()
+    fd:close()
+    fd = nil
 else
     print(" :-( no timer config file found (" .. TIMER_CONFIG_FILE_NAME ..")")
 end
+collectgarbage()
 
--- FIXME: THIS FUNCTION WILL CAUSE MEM ERRORS!
-function writeTimerConfigFile()
-    --print("FIXME TODO")
--- file.remove(TIMER_CONFIG_FILE_NAME)
---if file.open(TIMER_CONFIG_FILE_NAME, "rw") then
---    for k, v in pairs(TIMERDEFINITIONS) do
---        local _from                 = v["from"]
---        local _to                   = v["to"]
---        file.write(''.. k .. ':' .. _from .. ':' .. _to .. '\r\n')
---        file.flush()
---    end
---    file.close()
---end
-end
+                -- UPDATE FILE
+                collectgarbage()
+                --file.remove(TIMER_CONFIG_FILE_NAME)
+                fd = file.open(TIMER_CONFIG_FILE_NAME, "r")
+                fd:write('key:123:456\r\n')
+                fd:flush()
+                fd:close()
+                fd = nil
+                collectgarbage()
 
 ----------
 -- SNTP --
@@ -135,12 +107,9 @@ sntpTimeSyncRunning = false
 sntpTimeSyncDone    = false
 function syncSNTP()
     sntpServers = {
-        "0.pool.ntp.org",
         "1.pool.ntp.org",
-        "2.pool.ntp.org",
         "3.pool.ntp.org",
         "ptbtime1.ptb.de",
-        "ptbtime2.ptb.de",
         "ptbtime3.ptb.de",
     }
     if ( not sntpTimeSyncRunning and not sntpTimeSyncDone ) then
@@ -169,7 +138,7 @@ end
 ----------
 local function enable_mDNS_registration() 
     mdns.register("nodemcutimer", { description="HeizungsTimer-BaNe", service="http", port=80, location="DWNTS10" })
-    end
+end
 local function disable_mDNS_registration() 
     mdns.close()
 end
@@ -187,7 +156,6 @@ LED_blue_STATE = 2      -- see "init.lua". HAS TO BE USED BY LED STATE TIMER THE
 ----------------
 -- Timers     --
 ----------------
-
 
 -- DO NOT CHANGE THIS TIMER DEFINITION!
 local timer1_id = 0
@@ -235,8 +203,6 @@ tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
     end
 
     -- === WIFI SETUP CHECK ===
-    -- check for active wifi setup during cycle
-    -- var 'local setup_wifi = gpio.read(setupwifi_pin)' has been previously defined by init.lua script
     if isWifiSetupActive() then
         print("SETUP_WIFI_RESTART")
         node.restart()
@@ -245,34 +211,35 @@ tmr.register(timer1_id, timer1_timeout_millis, tmr.ALARM_SEMI, function()
 
 	-- GC (doesn't help from out of memory, though)
     collectgarbage()
-    print("  -> heap: " .. node.heap())
+    --print("  -> heap: " .. node.heap())
     -- /GC
 
     tmr.start(timer1_id)    -- restart timer for creating a proper loop
 end)
 tmr.start(timer1_id)
-print(" timer1 started (switch relais)");
 
 ----------------
 -- Init Wifi  --
 ----------------
 -- read config from FS
-client_ssid = "notinitialized"
-client_password = "notinitialized"
-if file.open("client_ssid.txt", "r") then
-    client_ssid = file.readline()
-    file.close()
+local client_ssid = "notinitialized"
+local client_password = "notinitialized"
+local fd = file.open("client_ssid.txt", "r")
+if fd ~= nil then
+    client_ssid = fd:readline()
+    fd:close()
+    fd = nil
 end
 collectgarbage()
-if file.open("client_password.txt", "r") then
-    client_password = file.readline()
-    file.close()
+local fd = file.open("client_password.txt", "r")
+if fd ~= nil then
+    client_password = fd:readline()
+    fd:close()
+    fd = nil
 end
 collectgarbage()
 print("client_ssid: '" .. client_ssid .. "'")
 print("client_password: '" .. client_password .. "'")
--- a fix for URL-encoded character ',' (comma)
-print("  after URL-char-decode: " .. string.gsub(client_password, "%%2C", ","))
 
 -- setup station mode
 wifi.setmode(wifi.STATION)
@@ -286,31 +253,14 @@ wifi.sta.config(wifi_client_config)
 wifi.sta.connect()
 print(" connecting to: " .. client_ssid)
 
---[[ 
--- === WIFI LISTENERS ===
-wifi.eventmon.register(wifi.eventmon.STA_GOT_IP, function(T)
-        print("\n\tSTA - GOT IP".."\n\tStation IP: "..T.IP.."\n\tSubnet mask: "..T.netmask.."\n\tGateway IP: "..T.gateway)
-        enable_mDNS_registration()
-    end
-)
-wifi.eventmon.register(wifi.eventmon.STA_DISCONNECTED, function(T)
-        print("\n\tSTA - DISCONNECTED".."\n\tSSID: "..T.SSID.."\n\tBSSID: "..T.BSSID.."\n\treason: "..T.reason)
-        disable_mDNS_registration()
-    end
-)
-wifi.eventmon.register(wifi.eventmon.STA_AUTHMODE_CHANGE, function(T)
-        print("\n\tSTA - AUTHMODE CHANGE".."\n\told_auth_mode: "..T.old_auth_mode.."\n\tnew_auth_mode: "..T.new_auth_mode)
-        disable_mDNS_registration()
-    end
-)
--- === /WIFI LISTENERS ===
-]] --
+client_ssid = nil
+client_password = nil
+collectgarbage()
 
 ----------------
 -- Web Server --
 ----------------
 print("Starting Web Server...")
--- a simple HTTP server
 if srv~=nil then
   print("found an open server. closing it...")
   srv:close()
@@ -318,12 +268,10 @@ if srv~=nil then
 end
 
 local function Sendfile(sck, filename, sentCallback)
-    print("opening file '" .. filename .. "'...")
     if not file.open(filename, "r") then
         print(" cannot open file '" .. filename .. "'")
         sck:close()
         SEMAPHORE_TAKEN = false
-        print("RESET SEMAPHORE_TAKEN")
         return
     end
     local function sendChunk()
@@ -336,7 +284,6 @@ local function Sendfile(sck, filename, sentCallback)
             if sentCallback then
                 sentCallback()
                 SEMAPHORE_TAKEN = false
-                print("RESET SEMAPHORE_TAKEN")
             else
                 sck:close()
             end
@@ -356,20 +303,12 @@ local function getContentType(path)
     else
         result = "text"
     end
-    print("  ### Content-Type = " .. result)
     return result
 end
 
 ----------------
 -- Web Server --
 ----------------
---[[
-"REST":
-============
-    GET     TODO
-    POST    http://ip:port/timer/{timer_id} --> create/update timer
-    DELETE  http://ip:port/timer/{timer_id} --> delete timer
-]]--
 SEMAPHORE_TAKEN = false
 -- == START ACTUAL WEB SERVER ==
 local srv = net.createServer(net.TCP)
@@ -412,12 +351,9 @@ srv:listen(80, function(conn)
                 function()
                     Sendfile(sck, path, 
                         function() 
-                            --sck:send("seconds_until_switchoff_counter: " .. seconds_until_switchoff_counter or "?", 
-                            --function() 
                                 sck:close()
                                 sck = nil
                                 collectgarbage()
-                            --end)
                         end)
                 end)
         end
@@ -435,6 +371,7 @@ srv:listen(80, function(conn)
                         sck = nil
                         collectgarbage()
                     end)
+            collectgarbage()
         end
 
         local function respondTimers()
@@ -453,6 +390,7 @@ srv:listen(80, function(conn)
             end
             json = json .. "}"
             sendJSON(json)
+            collectgarbage()
         end
 
         local function respondServerTime()
@@ -461,6 +399,7 @@ srv:listen(80, function(conn)
             local first = true
             local json = "{\"server_time\":" .. sec .. "}"
             sendJSON(json)
+            collectgarbage()
         end
 
         local function respondOK()
@@ -484,42 +423,30 @@ srv:listen(80, function(conn)
         end
 
         local function handleGET(payload, path)
-            --print("### handleGET() ###")
-            -- path?
             if string.match(path, "status") then
-                --print(" - respondStatus()")
                 respondStatus(sck)
             elseif string.match(path, "timer") then
                 respondTimers()
             elseif string.match(path, "servertime") then
                 respondServerTime()
             else
-                --print(" - respondMain()") 
                 respondRoot(sck, path)
             end
         end
 
         local function safelyUpdateTimersFromJSON(_json)
-            print(" ---1 ")
             local result = sjson.decode(_json)
-            print(" ---2 ")
-            -- clear old values
             for k,v in pairs(TIMERDEFINITIONS) do
                 TIMERDEFINITIONS[k] = nil
             end
-            -- insert new ones
             for _timerId, val in pairs(result) do 
                 print(" --->>> ")
                 addOrUpdateTimer(_timerId, val["from"], val["to"])
-                writeTimerConfigFile()
             end
         end
 
         local function handlePOST(payload, path)
-            print("### handlePOST() ###")
-            
             if string.match(path, "timers") then
-                -- POST @ path "/timers" --> application/json
                 local _json = string.match(payload, "{.*}")      -- extract JSON from payload
                 print(" POST /timers:")
                 print(_json)
@@ -527,15 +454,13 @@ srv:listen(80, function(conn)
             end
 
             respondTimers()
-
+            collectgarbage()
         end
         -- === FUNCTIONS - END ===
     
         -- === ACTUAL EVALUATION ===
         local GET_requestpath = string.match(payload, "GET (.*) HTTP") --or "N/A"
         local POST_requestpath = string.match(payload, "POST (.*) HTTP") --or "N/A"
-        print(" GET_requestpath: " .. (GET_requestpath or "???") )
-        print(" POST_requestpath: " .. (POST_requestpath or "???") )
         
         if GET_requestpath then
             handleGET(payload, GET_requestpath)
