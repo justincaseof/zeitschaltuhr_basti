@@ -90,15 +90,20 @@ else
 end
 collectgarbage()
 
-                -- UPDATE FILE
-                collectgarbage()
-                --file.remove(TIMER_CONFIG_FILE_NAME)
-                fd = file.open(TIMER_CONFIG_FILE_NAME, "r")
-                fd:write('key:123:456\r\n')
-                fd:flush()
-                fd:close()
-                fd = nil
-                collectgarbage()
+local function writeTimerConfigToFile()
+    -- UPDATE FILE
+    collectgarbage()
+    fd = file.open(TIMER_CONFIG_FILE_NAME, "w+")
+    for k, v in pairs(TIMERDEFINITIONS) do
+        local _from = v["from"]
+        local _to   = v["to"]
+        fd:write( k .. ':' .. _from .. ':' .. _to .. '\r\n' )
+        fd:flush()
+    end
+    fd:close()
+    fd = nil
+    collectgarbage()
+end
 
 ----------
 -- SNTP --
@@ -442,6 +447,7 @@ srv:listen(80, function(conn)
             for _timerId, val in pairs(result) do 
                 print(" --->>> ")
                 addOrUpdateTimer(_timerId, val["from"], val["to"])
+                writeTimerConfigToFile()
             end
         end
 
